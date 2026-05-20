@@ -5,6 +5,7 @@ export default function DashboardIcon({ type, colour = "blue" }) {
       amber: "#f97316",
       green: "#10b981",
       red: "#e11d48",
+      purple: "#7c3aed",
       slate: "#64748b",
     }[colour] || "#2563eb";
   const common = { fill: "none", stroke, strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" };

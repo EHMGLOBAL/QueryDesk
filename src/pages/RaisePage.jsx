@@ -145,12 +145,12 @@ export default function RaisePage({ data, user, create, open, notify }) {
 
       <Card>
         <div className="grid gap-4 md:grid-cols-2">
+          <Sel label="Query Origin" value={form.queryOrigin} set={(value) => set("queryOrigin", value)} opts={["", ...QUERY_ORIGINS]} required />
           <Field label="Application Reference Number" value={form.applicationNumber} set={(value) => set("applicationNumber", value)} />
           <Field label="Applicant First Name" value={form.firstName} set={(value) => set("firstName", value)} required />
           <Field label="Applicant Surname" value={form.lastName} set={(value) => set("lastName", value)} required />
           <Field label="Date of Birth" type="date" value={form.dateOfBirth} set={(value) => set("dateOfBirth", value)} />
           <Field label="Applicant Email" type="email" value={form.applicantEmail} set={(value) => set("applicantEmail", value)} required />
-          <Sel label="Query Origin" value={form.queryOrigin} set={(value) => set("queryOrigin", value)} opts={["", ...QUERY_ORIGINS]} required />
           <Field label="Applicant Phone" value={form.applicantPhone} set={(value) => set("applicantPhone", value)} required={form.queryOrigin === "Phone"} />
           <Sel label="Query Type" value={form.queryType} set={(value) => set("queryType", value)} opts={QUERY_TYPES} required />
           <Sel label="ECIMS Application Status" value={form.ecimsStatus} set={(value) => set("ecimsStatus", value)} opts={ECIMS_APPLICATION_STATUSES} />
@@ -212,7 +212,7 @@ export default function RaisePage({ data, user, create, open, notify }) {
         </label>
         <div className="mt-6 flex justify-end">
           <button disabled={missing} onClick={submit} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:bg-slate-300">
-            Create parent query
+            Create Query
           </button>
         </div>
       </Card>

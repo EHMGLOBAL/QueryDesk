@@ -25,6 +25,13 @@ export default function DashboardMetric({ title, value, note, t = "blue", icon =
         pill: "bg-emerald-50 text-emerald-700 ring-emerald-100",
         hover: "hover:border-emerald-200",
       },
+      purple: {
+        border: "border-violet-100",
+        accent: "bg-violet-600",
+        iconBg: "bg-violet-50",
+        pill: "bg-violet-50 text-violet-700 ring-violet-100",
+        hover: "hover:border-violet-200",
+      },
       red: {
         border: "border-rose-100",
         accent: "bg-rose-500",
@@ -58,8 +65,8 @@ export default function DashboardMetric({ title, value, note, t = "blue", icon =
       )}
     >
       <div className={cn("absolute inset-x-0 top-0 h-1", cfg.accent)} />
-      <div className="flex min-h-[142px] flex-col justify-between gap-6">
-        <div>
+      <div className="flex min-h-[142px] flex-col gap-5">
+        <div className="flex justify-center">
           <span className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ring-1", cfg.pill)}>
             <span className={cn("h-2 w-2 rounded-full", cfg.accent)} />
             {note}
