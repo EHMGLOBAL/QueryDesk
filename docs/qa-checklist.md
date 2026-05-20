@@ -19,6 +19,9 @@ Use this checklist to run through the current frontend manually before sharing c
 - [ ] Type a lowercase application reference and confirm it becomes uppercase while typing.
 - [ ] Select Phone as the query origin and confirm phone number becomes required.
 - [ ] Select Chat or Email as the query origin and confirm phone number is not required.
+- [ ] Attach a JPG, PNG, and PDF and confirm each appears before submission with name, type, size, and remove option.
+- [ ] Try attaching an unsupported file type and confirm it is rejected.
+- [ ] Try attaching more than five files and confirm the form blocks the extra files.
 - [ ] Try submitting without each mandatory field and confirm the form blocks submission.
 
 ## Duplicate Handling
@@ -58,6 +61,7 @@ Use this checklist to run through the current frontend manually before sharing c
 - [ ] Add a comment to an open query and confirm it appears in the comments and audit trail.
 - [ ] Confirm each audit entry shows the author, role, timestamp, and message.
 - [ ] Confirm the detail page shows original support agent, last commenter, and last updated timestamp.
+- [ ] Confirm the detail page shows Attachments / Evidence with open and download actions.
 - [ ] Create a child query and confirm it links back to the parent.
 - [ ] Open a parent query and confirm linked child queries appear.
 
@@ -68,4 +72,3 @@ Use this checklist to run through the current frontend manually before sharing c
 - [ ] Confirm the table shows ticket status and ECIMS status separately.
 - [ ] Confirm query origin, urgency, SLA, last updated, and original support agent are visible.
 - [ ] Export CSV and confirm the downloaded report includes the current query data.
-

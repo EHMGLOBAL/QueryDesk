@@ -6,6 +6,7 @@ import Header from "../components/Header.jsx";
 import Mini from "../components/Mini.jsx";
 import Stat from "../components/Stat.jsx";
 import { ECIMS_APPLICATION_STATUSES, PERMISSIONS, QUERYDESK_TICKET_STATUSES } from "../data/constants.js";
+import { downloadAttachment, formatFileSize, isImageAttachment, openAttachment } from "../utils/attachmentStorage.js";
 import { fmtDate, fmtTime } from "../utils/date.js";
 import { audit, cn, uid } from "../utils/helpers.js";
 import {
@@ -25,6 +26,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   const ticketStatus = getTicketStatus(q, refDate);
   const ecimsStatus = getEcimsStatus(q);
   const activity = lastActivity(q);
+  const attachments = q.attachments || [];
   const canComment = canCommentOnQuery(q, user, refDate);
   const canEditTicketStatus = canChangeTicketStatus(q, user, refDate);
   const canCreateChild = permissions.canCreateChild && !["Resolved", "Deactivated"].includes(ticketStatus);
@@ -157,13 +159,6 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
             <Mini label="Last updated" value={fmtTime(activity.when)} />
           </div>
           <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600 ring-1 ring-slate-200">{q.queryDetails}</p>
-          {q.attachments?.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {q.attachments.map((attachment) => (
-                <Badge key={attachment}>{attachment}</Badge>
-              ))}
-            </div>
-          )}
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <Sel label="QueryDesk Ticket Status" value={ticketStatus} set={changeQueryStatus} opts={statusOptions} disabled={!canEditTicketStatus} />
             <Sel
@@ -207,6 +202,59 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
           </button>
         </Card>
       </div>
+
+      <Card>
+        <h2 className="text-xl font-bold">Attachments / Evidence</h2>
+        {attachments.length ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {attachments.map((attachment) => {
+              const hasSource = Boolean(attachment.dataUrl || attachment.url);
+
+              return (
+                <div key={attachment.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+                  <div className="flex gap-3">
+                    {isImageAttachment(attachment) && attachment.dataUrl ? (
+                      <img src={attachment.dataUrl} alt="" className="h-16 w-16 rounded-xl object-cover ring-1 ring-slate-200" />
+                    ) : (
+                      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-white text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                        {attachment.category || "File"}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-slate-950">{attachment.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {attachment.category || "File"} - {formatFileSize(attachment.size)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">Uploaded by {attachment.uploadedBy || "Unknown"}</p>
+                      <p className="mt-1 text-xs text-slate-500">{attachment.uploadedAt ? fmtTime(attachment.uploadedAt) : "Upload date unavailable"}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openAttachment(attachment)}
+                      disabled={!hasSource}
+                      className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                    >
+                      Open / Preview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadAttachment(attachment)}
+                      disabled={!hasSource}
+                      className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      Download
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500 ring-1 ring-slate-200">No attachments added yet.</p>
+        )}
+      </Card>
 
       <Card>
         <h2 className="text-xl font-bold">Comments and audit trail</h2>

@@ -72,7 +72,7 @@ export default function DashboardCaseCard({ q, open, refDate, sectionTone = "sla
       {q.attachments?.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
           {q.attachments.map((attachment) => (
-            <Badge key={attachment}>{attachment}</Badge>
+            <Badge key={attachment.id || attachment.name || attachment}>{attachment.name || attachment}</Badge>
           ))}
         </div>
       )}

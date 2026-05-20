@@ -1,4 +1,5 @@
 import { PERMISSIONS } from "../data/constants.js";
+import { normaliseAttachments } from "./attachmentStorage.js";
 import { businessDays, daysUntil } from "./date.js";
 
 const RESOLVED_REOPEN_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
@@ -49,6 +50,7 @@ export function normaliseQuery(query, ref = new Date()) {
     queryOrigin: query.queryOrigin || "Email",
     originalSupportAgentId: query.originalSupportAgentId || query.ownerId,
     originalSupportAgentName: query.originalSupportAgentName || query.ownerName,
+    attachments: normaliseAttachments(query.attachments || []),
     resolvedAt,
     reopenedAt: query.reopenedAt || null,
   };
