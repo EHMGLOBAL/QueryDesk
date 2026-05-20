@@ -1,5 +1,6 @@
 import Badge from "../components/Badge.jsx";
 import Notice from "../components/Notice.jsx";
+import SidebarHelpCentre from "../components/SidebarHelpCentre.jsx";
 import { NAV } from "../data/constants.js";
 import { cn } from "../utils/helpers.js";
 
@@ -9,7 +10,7 @@ export default function AppLayout({ children, sessionUser, permissions, page, cu
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#f6f9fc] to-blue-50 text-slate-900">
       <div className="flex min-h-screen">
-        <aside className="hidden w-72 shrink-0 border-r border-slate-200 bg-white/90 p-5 backdrop-blur lg:block">
+        <aside className="hidden h-screen w-72 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white/90 p-5 backdrop-blur lg:flex">
           <div className="rounded-3xl bg-blue-600 p-5 text-white shadow-xl shadow-blue-600/20">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-xl font-black ring-1 ring-white/20">
               QD
@@ -33,13 +34,17 @@ export default function AppLayout({ children, sessionUser, permissions, page, cu
             ))}
           </nav>
 
-          <div className="mt-8 rounded-3xl bg-blue-50 p-4 text-blue-900 ring-1 ring-blue-100">
-            <p className="font-bold">Logged in as</p>
-            <p className="mt-1 text-sm leading-6">
-              {sessionUser.name}
-              <br />
-              {sessionUser.role}
-            </p>
+          <div className="mt-auto space-y-4 pt-8">
+            <div className="rounded-3xl bg-blue-50 p-4 text-blue-900 ring-1 ring-blue-100">
+              <p className="font-bold">Logged in as</p>
+              <p className="mt-1 text-sm leading-6">
+                {sessionUser.name}
+                <br />
+                {sessionUser.role}
+              </p>
+            </div>
+
+            <SidebarHelpCentre />
           </div>
         </aside>
 
