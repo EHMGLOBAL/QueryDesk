@@ -3,6 +3,8 @@ import { normaliseAttachments } from "./attachmentStorage.js";
 import { businessDays, daysUntil } from "./date.js";
 
 const RESOLVED_REOPEN_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const OPERATIONAL_TICKET_STATUSES = ["Open", "In Progress", "Unresolved", "Cancelled"];
+const MANAGEMENT_TICKET_STATUSES = ["Open", "In Progress", "Resolved", "Unresolved", "Cancelled", "Deactivated"];
 
 function permissionsFor(user) {
   if (user.level === "admin") {
@@ -171,8 +173,30 @@ export function canChangeTicketStatus(query, user, ref = new Date()) {
   const permissions = permissionsFor(user);
   const ticketStatus = getTicketStatus(query, ref);
   if (!permissions.canChangeStatus) return false;
+  if (ticketStatus === "Resolved" && !canResolveTicket(user)) return false;
   if (ticketStatus === "Deactivated") return permissions.canReopenDeactivated || user.level === "admin";
   return true;
+}
+
+export function canResolveTicket(user) {
+  return user.level === "coordinator" || user.level === "admin";
+}
+
+export function canSetTicketStatus(query, user, nextStatus, ref = new Date()) {
+  if (!canChangeTicketStatus(query, user, ref)) return false;
+  if (nextStatus === "Resolved") return canResolveTicket(user);
+  return getAllowedTicketStatuses(query, user, ref).includes(nextStatus);
+}
+
+export function getAllowedTicketStatuses(query, user, ref = new Date()) {
+  const ticketStatus = getTicketStatus(query, ref);
+
+  if (!canChangeTicketStatus(query, user, ref)) return [ticketStatus];
+  if (canResolveTicket(user)) {
+    return ticketStatus === "Deactivated" ? ["Deactivated", "Open", "In Progress"] : MANAGEMENT_TICKET_STATUSES.filter((status) => status !== "Deactivated");
+  }
+
+  return OPERATIONAL_TICKET_STATUSES;
 }
 
 export function getDashboardQueues(data, refDate) {

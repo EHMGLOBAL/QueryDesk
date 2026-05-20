@@ -5,14 +5,17 @@ import { Sel } from "../components/FormControls.jsx";
 import Header from "../components/Header.jsx";
 import Mini from "../components/Mini.jsx";
 import Stat from "../components/Stat.jsx";
-import { ECIMS_APPLICATION_STATUSES, PERMISSIONS, QUERYDESK_TICKET_STATUSES } from "../data/constants.js";
+import { ECIMS_APPLICATION_STATUSES, PERMISSIONS } from "../data/constants.js";
 import { downloadAttachment, formatFileSize, isImageAttachment, openAttachment } from "../utils/attachmentStorage.js";
 import { fmtDate, fmtTime } from "../utils/date.js";
 import { audit, cn, uid } from "../utils/helpers.js";
 import {
   canChangeTicketStatus,
   canCommentOnQuery,
+  canResolveTicket,
+  canSetTicketStatus,
   getEcimsStatus,
+  getAllowedTicketStatuses,
   getTicketStatus,
   isResolvedWithinReopenWindow,
   lastActivity,
@@ -34,14 +37,14 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   const [slaLabel, slaTone, elapsed, target] = sla(q, refDate);
   const [comment, setComment] = useState("");
   const [childText, setChildText] = useState("");
-  const statusOptions = ticketStatus === "Deactivated" ? QUERYDESK_TICKET_STATUSES : QUERYDESK_TICKET_STATUSES.filter((status) => status !== "Deactivated");
+  const statusOptions = getAllowedTicketStatuses(q, user, refDate);
   const lockMessage =
     ticketStatus === "Resolved"
       ? isResolvedWithinReopenWindow(q, refDate)
-        ? "Resolved case: Supervisor or Coordinator can reopen it by adding a comment within 3 days."
-        : "Resolved case is outside the 3 day reopen window."
+        ? "This query is resolved. A Supervisor or Coordinator can reopen it by adding a comment within 3 days."
+        : "This query is locked because it has been resolved for more than 3 days. Coordinator access is required to reopen it."
       : ticketStatus === "Deactivated"
-        ? "Deactivated case: only Coordinator/Admin can comment or reopen."
+        ? "This query is locked because it has been resolved for more than 3 days. Coordinator access is required to reopen it."
         : "";
 
   const appendAudit = (query, body) => ({ ...query, comments: [...(query.comments || []), audit(user, body)] });
@@ -79,7 +82,16 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   };
 
   const changeQueryStatus = (value) => {
-    if (!canEditTicketStatus || value === ticketStatus) return;
+    if (value === ticketStatus) return;
+    if (value === "Resolved" && !canResolveTicket(user)) {
+      notify("Only Coordinator/Admin can resolve QueryDesk tickets.");
+      return;
+    }
+    if (!canSetTicketStatus(q, user, value, refDate)) {
+      notify("You do not have permission to set that QueryDesk ticket status.");
+      return;
+    }
+
     update(q.id, (current) => {
       const currentStatus = getTicketStatus(current, refDate);
       const now = new Date().toISOString();
