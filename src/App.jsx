@@ -5,6 +5,7 @@ import AppLayout from "./layouts/AppLayout.jsx";
 import AnalyticsPage from "./pages/AnalyticsPage.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import DetailPage from "./pages/DetailPage.jsx";
+import HelpCentrePage from "./pages/HelpCentrePage.jsx";
 import ListPage from "./pages/ListPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import QueueLandingPage from "./pages/QueueLandingPage.jsx";
@@ -110,6 +111,7 @@ export default function App() {
       data={visibleData.filter((query) => query.ownerId === sessionUser.id)}
       open={open}
       refDate={refDate}
+      separateStatusFilters
     />
   ) : page === "raise" ? (
     <RaisePage data={visibleData} user={sessionUser} create={create} open={open} notify={setNotice} />
@@ -117,6 +119,8 @@ export default function App() {
     <AnalyticsPage data={visibleData} open={open} refDate={refDate} user={sessionUser} />
   ) : page === "rules" && permissions.canViewRules ? (
     <RulesPage />
+  ) : page === "help" ? (
+    <HelpCentrePage />
   ) : (
     <Dashboard data={visibleData} open={open} refDate={refDate} openQueue={setPage} />
   );

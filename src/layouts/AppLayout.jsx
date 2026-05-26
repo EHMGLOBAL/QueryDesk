@@ -6,6 +6,7 @@ import { cn } from "../utils/helpers.js";
 
 export default function AppLayout({ children, sessionUser, permissions, page, current, notice, goto, resetDemo, logout, dismissNotice }) {
   const visibleNav = NAV.filter(([key]) => permissions.nav.includes(key));
+  const mobileNav = permissions.nav.includes("help") ? [...visibleNav, ["help", "Help Centre"]] : visibleNav;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#f6f9fc] to-blue-50 text-slate-900">
@@ -44,7 +45,7 @@ export default function AppLayout({ children, sessionUser, permissions, page, cu
               </p>
             </div>
 
-            <SidebarHelpCentre />
+            <SidebarHelpCentre active={page === "help" && !current} onOpen={() => goto("help")} />
           </div>
         </aside>
 
@@ -52,7 +53,7 @@ export default function AppLayout({ children, sessionUser, permissions, page, cu
           <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-4 py-4 shadow-sm backdrop-blur lg:px-8">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <select value={page} onChange={(event) => goto(event.target.value)} className="rounded-xl border px-3 py-2.5 text-sm lg:hidden">
-                {visibleNav.map(([key, label]) => (
+                {mobileNav.map(([key, label]) => (
                   <option key={key} value={key}>
                     {label}
                   </option>

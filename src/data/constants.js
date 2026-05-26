@@ -7,7 +7,7 @@ export const USERS = [
 export const PERMISSIONS = {
   agent: {
     label: "Support Agent",
-    nav: ["dashboard", "raise", "all", "my"],
+    nav: ["dashboard", "raise", "all", "my", "help"],
     canRaise: true,
     canComment: true,
     canCreateChild: true,
@@ -22,7 +22,7 @@ export const PERMISSIONS = {
   },
   supervisor: {
     label: "Supervisor",
-    nav: ["dashboard", "raise", "all", "my", "analytics", "rules"],
+    nav: ["dashboard", "raise", "all", "my", "analytics", "rules", "help"],
     canRaise: true,
     canComment: true,
     canCreateChild: true,
@@ -37,7 +37,7 @@ export const PERMISSIONS = {
   },
   coordinator: {
     label: "Coordinator",
-    nav: ["dashboard", "raise", "all", "my", "analytics", "rules"],
+    nav: ["dashboard", "raise", "all", "my", "analytics", "rules", "help"],
     canRaise: true,
     canComment: true,
     canCreateChild: true,
