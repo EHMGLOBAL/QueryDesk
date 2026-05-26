@@ -96,11 +96,12 @@ export default function App() {
   ) : page === "all" ? (
     <ListPage
       title="Find Query"
-      desc="Search by application number, name, surname, date of birth, email, ticket status, ECIMS status or query details."
+      desc="Search by application number, name, surname, date of birth, email, QueryDesk status, eCIMS status or query details."
       data={visibleData}
       open={open}
       refDate={refDate}
       groupLinked
+      separateStatusFilters
     />
   ) : page === "my" ? (
     <ListPage

@@ -6,6 +6,11 @@ import QueryCard from "../components/QueryCard.jsx";
 import { ECIMS_APPLICATION_STATUSES, QUERYDESK_TICKET_STATUSES } from "../data/constants.js";
 import { getEcimsStatus, getTicketStatus, lastActivity, urgency } from "../utils/queryRules.js";
 
+const ALL_ECIMS_STATUSES = "All eCIMS statuses";
+const ALL_QUERY_STATUSES = "All query statuses";
+const ALL_SLA_STATUSES = "All SLA statuses";
+const SLA_STATUS_OPTIONS = ["Critical", "High", "Medium", "Low"];
+
 function querySearchText(query, refDate) {
   return [
     query.applicationNumber,
@@ -31,7 +36,24 @@ function statusMatches(query, status, refDate) {
   return status === "All" || getTicketStatus(query, refDate) === status || getEcimsStatus(query) === status || urgency(query, refDate)[0] === status;
 }
 
-function groupLinkedQueries(data, search, status, refDate) {
+function separatedFiltersMatch(query, filters, refDate) {
+  const { ecimsStatusFilter, queryStatusFilter, slaStatusFilter } = filters;
+
+  if (ecimsStatusFilter !== ALL_ECIMS_STATUSES && getEcimsStatus(query) !== ecimsStatusFilter) return false;
+  if (queryStatusFilter !== ALL_QUERY_STATUSES && getTicketStatus(query, refDate) !== queryStatusFilter) return false;
+  if (slaStatusFilter !== ALL_SLA_STATUSES && urgency(query, refDate)[0] !== slaStatusFilter) return false;
+  return true;
+}
+
+function queryMatchesFilters(query, searchTerm, filters, refDate) {
+  return (!searchTerm || querySearchText(query, refDate).includes(searchTerm)) && separatedFiltersMatch(query, filters, refDate);
+}
+
+function queryMatchesCombinedFilter(query, searchTerm, status, refDate) {
+  return (!searchTerm || querySearchText(query, refDate).includes(searchTerm)) && statusMatches(query, status, refDate);
+}
+
+function groupLinkedQueries(data, search, refDate, matchesQuery) {
   const searchTerm = search.toLowerCase();
   const byId = new Map(data.map((query) => [query.id, query]));
   const groups = new Map();
@@ -47,7 +69,7 @@ function groupLinkedQueries(data, search, status, refDate) {
     .map(([rootId, group]) => {
       const parent = byId.get(rootId) || group.find((query) => !query.parentId) || group[0];
       const children = group.filter((query) => query.id !== parent.id);
-      const matchingQueries = group.filter((query) => (!searchTerm || querySearchText(query, refDate).includes(searchTerm)) && statusMatches(query, status, refDate));
+      const matchingQueries = group.filter((query) => matchesQuery(query, searchTerm));
       const parentMatches = matchingQueries.some((query) => query.id === parent.id);
       const linkedCount = children.length;
       const latestActivity = group.reduce(
@@ -73,24 +95,37 @@ function groupLinkedQueries(data, search, status, refDate) {
     .sort((a, b) => b.lastUpdatedAt - a.lastUpdatedAt);
 }
 
-export default function ListPage({ title, desc, data, open, refDate, groupLinked = false }) {
+export default function ListPage({ title, desc, data, open, refDate, groupLinked = false, separateStatusFilters = false }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
+  const [ecimsStatusFilter, setEcimsStatusFilter] = useState(ALL_ECIMS_STATUSES);
+  const [queryStatusFilter, setQueryStatusFilter] = useState(ALL_QUERY_STATUSES);
+  const [slaStatusFilter, setSlaStatusFilter] = useState(ALL_SLA_STATUSES);
+  const filters = useMemo(
+    () => ({ ecimsStatusFilter, queryStatusFilter, slaStatusFilter }),
+    [ecimsStatusFilter, queryStatusFilter, slaStatusFilter]
+  );
   const rows = useMemo(
     () =>
-      groupLinked
-        ? groupLinkedQueries(data, search, status, refDate)
+      separateStatusFilters && groupLinked
+        ? groupLinkedQueries(data, search, refDate, (query, searchTerm) => queryMatchesFilters(query, searchTerm, filters, refDate))
+        : separateStatusFilters
+        ? data
+            .filter((query) => queryMatchesFilters(query, search.toLowerCase(), filters, refDate))
+            .map((query) => ({ query, linkedCount: 0, groupSize: 1, matchedLinked: false, groupActivity: lastActivity(query) }))
+        : groupLinked
+        ? groupLinkedQueries(data, search, refDate, (query, searchTerm) => queryMatchesCombinedFilter(query, searchTerm, status, refDate))
         : data
-            .filter((query) => (!search || querySearchText(query, refDate).includes(search.toLowerCase())) && statusMatches(query, status, refDate))
+            .filter((query) => queryMatchesCombinedFilter(query, search.toLowerCase(), status, refDate))
             .map((query) => ({ query, linkedCount: 0, groupSize: 1, matchedLinked: false, groupActivity: lastActivity(query) })),
-    [data, search, status, refDate, groupLinked]
+    [data, search, status, filters, refDate, groupLinked, separateStatusFilters]
   );
 
   return (
     <div className="space-y-7">
       <Header title={title} desc={desc} />
       <Card>
-        <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
+        <div className={separateStatusFilters ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_repeat(3,190px)]" : "grid gap-4 lg:grid-cols-[1fr_240px]"}>
           <label>
             <span className="mb-1 block text-sm font-semibold">Search</span>
             <input
@@ -100,7 +135,15 @@ export default function ListPage({ title, desc, data, open, refDate, groupLinked
               placeholder="Name, surname, DOB, email, application number or details"
             />
           </label>
-          <Sel label="Filter" value={status} set={setStatus} opts={["All", ...QUERYDESK_TICKET_STATUSES, ...ECIMS_APPLICATION_STATUSES, "Critical", "High", "Medium", "Low"]} />
+          {separateStatusFilters ? (
+            <>
+              <Sel label="eCIMS status" value={ecimsStatusFilter} set={setEcimsStatusFilter} opts={[ALL_ECIMS_STATUSES, ...ECIMS_APPLICATION_STATUSES]} />
+              <Sel label="Query Status" value={queryStatusFilter} set={setQueryStatusFilter} opts={[ALL_QUERY_STATUSES, ...QUERYDESK_TICKET_STATUSES]} />
+              <Sel label="SLA status" value={slaStatusFilter} set={setSlaStatusFilter} opts={[ALL_SLA_STATUSES, ...SLA_STATUS_OPTIONS]} />
+            </>
+          ) : (
+            <Sel label="Filter" value={status} set={setStatus} opts={["All", ...QUERYDESK_TICKET_STATUSES, ...ECIMS_APPLICATION_STATUSES, ...SLA_STATUS_OPTIONS]} />
+          )}
         </div>
         <div className="mt-5 space-y-4">
           {rows.length ? (
