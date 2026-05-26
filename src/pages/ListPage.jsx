@@ -3,11 +3,10 @@ import Card from "../components/Card.jsx";
 import { Sel } from "../components/FormControls.jsx";
 import Header from "../components/Header.jsx";
 import QueryCard from "../components/QueryCard.jsx";
+import StatusFilters from "../components/StatusFilters.jsx";
 import { ECIMS_APPLICATION_STATUSES, QUERYDESK_TICKET_STATUSES } from "../data/constants.js";
+import { ANY_FILTER, SLA_STATUS_OPTIONS, matchesSeparatedStatusFilters } from "../utils/queryFilters.js";
 import { getEcimsStatus, getTicketStatus, lastActivity, urgency } from "../utils/queryRules.js";
-
-const ANY_FILTER = "Any";
-const SLA_STATUS_OPTIONS = ["Critical", "High", "Medium", "Low"];
 
 function querySearchText(query, refDate) {
   return [
@@ -34,17 +33,8 @@ function statusMatches(query, status, refDate) {
   return status === "All" || getTicketStatus(query, refDate) === status || getEcimsStatus(query) === status || urgency(query, refDate)[0] === status;
 }
 
-function separatedFiltersMatch(query, filters, refDate) {
-  const { ecimsStatusFilter, queryStatusFilter, slaStatusFilter } = filters;
-
-  if (ecimsStatusFilter !== ANY_FILTER && getEcimsStatus(query) !== ecimsStatusFilter) return false;
-  if (queryStatusFilter !== ANY_FILTER && getTicketStatus(query, refDate) !== queryStatusFilter) return false;
-  if (slaStatusFilter !== ANY_FILTER && urgency(query, refDate)[0] !== slaStatusFilter) return false;
-  return true;
-}
-
 function queryMatchesFilters(query, searchTerm, filters, refDate) {
-  return (!searchTerm || querySearchText(query, refDate).includes(searchTerm)) && separatedFiltersMatch(query, filters, refDate);
+  return (!searchTerm || querySearchText(query, refDate).includes(searchTerm)) && matchesSeparatedStatusFilters(query, filters, refDate);
 }
 
 function queryMatchesCombinedFilter(query, searchTerm, status, refDate) {
@@ -103,6 +93,11 @@ export default function ListPage({ title, desc, data, open, refDate, groupLinked
     () => ({ ecimsStatusFilter, queryStatusFilter, slaStatusFilter }),
     [ecimsStatusFilter, queryStatusFilter, slaStatusFilter]
   );
+  const setFilter = (key, value) => {
+    if (key === "ecimsStatusFilter") setEcimsStatusFilter(value);
+    if (key === "queryStatusFilter") setQueryStatusFilter(value);
+    if (key === "slaStatusFilter") setSlaStatusFilter(value);
+  };
   const rows = useMemo(
     () =>
       separateStatusFilters && groupLinked
@@ -134,11 +129,7 @@ export default function ListPage({ title, desc, data, open, refDate, groupLinked
             />
           </label>
           {separateStatusFilters ? (
-            <>
-              <Sel label="eCIMS status" value={ecimsStatusFilter} set={setEcimsStatusFilter} opts={[ANY_FILTER, ...ECIMS_APPLICATION_STATUSES]} />
-              <Sel label="Query Status" value={queryStatusFilter} set={setQueryStatusFilter} opts={[ANY_FILTER, ...QUERYDESK_TICKET_STATUSES]} />
-              <Sel label="SLA status" value={slaStatusFilter} set={setSlaStatusFilter} opts={[ANY_FILTER, ...SLA_STATUS_OPTIONS]} />
-            </>
+            <StatusFilters filters={filters} setFilter={setFilter} />
           ) : (
             <Sel label="Filter" value={status} set={setStatus} opts={["All", ...QUERYDESK_TICKET_STATUSES, ...ECIMS_APPLICATION_STATUSES, ...SLA_STATUS_OPTIONS]} />
           )}

@@ -44,6 +44,7 @@ export default function App() {
   }
 
   const permissions = PERMISSIONS[sessionUser.level] || PERMISSIONS.agent;
+  const canAccessRules = sessionUser.level === "coordinator" || sessionUser.level === "admin";
   const visibleData = data.filter((query) => userCanSee(query, sessionUser));
   const current = data.find((query) => query.id === selected && userCanSee(query, sessionUser));
   const currentRootId = current?.parentId || current?.id;
@@ -57,6 +58,11 @@ export default function App() {
     setSelected(query.id);
   };
   const goto = (key) => {
+    if (key === "rules" && canAccessRules) {
+      setPage(key);
+      setSelected(null);
+      return;
+    }
     if (!permissions.nav.includes(key)) {
       setNotice("You do not have permission to access that page.");
       return;
@@ -117,7 +123,7 @@ export default function App() {
     <RaisePage data={visibleData} user={sessionUser} create={create} open={open} notify={setNotice} />
   ) : page === "analytics" && permissions.canViewReports ? (
     <AnalyticsPage data={visibleData} open={open} refDate={refDate} user={sessionUser} />
-  ) : page === "rules" && permissions.canViewRules ? (
+  ) : page === "rules" && canAccessRules ? (
     <RulesPage />
   ) : page === "help" ? (
     <HelpCentrePage />
@@ -136,6 +142,7 @@ export default function App() {
       resetDemo={resetDemo}
       logout={logout}
       dismissNotice={() => setNotice("")}
+      canAccessRules={canAccessRules}
     >
       {content}
     </AppLayout>

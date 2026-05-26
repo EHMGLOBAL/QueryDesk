@@ -1,12 +1,13 @@
 import Badge from "../components/Badge.jsx";
 import Notice from "../components/Notice.jsx";
 import SidebarHelpCentre from "../components/SidebarHelpCentre.jsx";
+import SidebarRulesCard from "../components/SidebarRulesCard.jsx";
 import { NAV } from "../data/constants.js";
 import { cn } from "../utils/helpers.js";
 
-export default function AppLayout({ children, sessionUser, permissions, page, current, notice, goto, resetDemo, logout, dismissNotice }) {
+export default function AppLayout({ children, sessionUser, permissions, page, current, notice, goto, resetDemo, logout, dismissNotice, canAccessRules = false }) {
   const visibleNav = NAV.filter(([key]) => permissions.nav.includes(key));
-  const mobileNav = permissions.nav.includes("help") ? [...visibleNav, ["help", "Help Centre"]] : visibleNav;
+  const mobileNav = [...visibleNav, ...(permissions.nav.includes("help") ? [["help", "Help Centre"]] : []), ...(canAccessRules ? [["rules", "Rules"]] : [])];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#f6f9fc] to-blue-50 text-slate-900">
@@ -46,6 +47,7 @@ export default function AppLayout({ children, sessionUser, permissions, page, cu
             </div>
 
             <SidebarHelpCentre active={page === "help" && !current} onOpen={() => goto("help")} />
+            {canAccessRules && <SidebarRulesCard active={page === "rules" && !current} onOpen={() => goto("rules")} />}
           </div>
         </aside>
 

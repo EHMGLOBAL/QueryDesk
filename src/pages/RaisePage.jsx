@@ -122,6 +122,7 @@ export default function RaisePage({ data, user, create, open, notify }) {
       createdAt: new Date().toISOString(),
       comments: [initialAudit, ...attachmentAudit],
     });
+    notify("Query raised!");
   };
 
   return (
@@ -153,7 +154,7 @@ export default function RaisePage({ data, user, create, open, notify }) {
           <Field label="Applicant Email" type="email" value={form.applicantEmail} set={(value) => set("applicantEmail", value)} required />
           <Field label="Applicant Phone" value={form.applicantPhone} set={(value) => set("applicantPhone", value)} required={form.queryOrigin === "Phone"} />
           <Sel label="Query Type" value={form.queryType} set={(value) => set("queryType", value)} opts={QUERY_TYPES} required />
-          <Sel label="ECIMS Application Status" value={form.ecimsStatus} set={(value) => set("ecimsStatus", value)} opts={ECIMS_APPLICATION_STATUSES} />
+          <Sel label="eCIMS Application Status" value={form.ecimsStatus} set={(value) => set("ecimsStatus", value)} opts={ECIMS_APPLICATION_STATUSES} />
           <Field label="Travel Date" type="date" value={form.travelDate} set={(value) => set("travelDate", value)} />
           <Sel label="Service Type" value={form.serviceType} set={(value) => set("serviceType", value)} opts={SERVICE_TYPES} />
           <Sel label="Application Type" value={form.applicationType} set={(value) => set("applicationType", value)} opts={APP_TYPES} required />

@@ -26,7 +26,7 @@ export default function DashboardCaseCard({ q, open, refDate, sectionTone = "sla
     ["DOB", fmtDate(q.dateOfBirth)],
     ["Email", q.applicantEmail],
     ["Phone", q.applicantPhone],
-    ["ECIMS status", ecimsStatus],
+    ["eCIMS status", ecimsStatus],
     ["Query origin", q.queryOrigin],
     ["Service", q.serviceType],
     ["Travel", days === null ? "Not provided" : `${fmtDate(q.travelDate)} (${days} days)`],

@@ -44,7 +44,7 @@ export default function QueryCard({ q, open, refDate, compact = false, linkedCou
         <div className="min-w-0 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
           <div className="grid grid-cols-2 gap-3">
             <Mini label="Applicant" value={`${q.firstName} ${q.lastName}`} />
-            <Mini label="ECIMS" value={getEcimsStatus(q)} />
+            <Mini label="eCIMS" value={getEcimsStatus(q)} />
             <Mini label="Original" value={q.originalSupportAgentName || q.ownerName} />
             <Mini label="Updated" value={`${fmtDate(activity.when)} by ${activity.who}`} />
           </div>

@@ -8,7 +8,7 @@ export default function QueueLandingPage({ type, data, open, refDate, back }) {
     {
       "queue-priority": {
         title: "Priority work queue",
-        desc: "Cases sorted by calculated urgency across ticket status, ECIMS status, travel date, service type, SLA and reopened state.",
+        desc: "Cases sorted by calculated urgency across ticket status, eCIMS status, travel date, service type, SLA and reopened state.",
         rows: queues.priorityRows,
         tone: "blue",
         empty: "No active priority queries.",
@@ -22,7 +22,7 @@ export default function QueueLandingPage({ type, data, open, refDate, back }) {
       },
       "queue-urgent": {
         title: "Urgent queries",
-        desc: "Cases with critical or high urgency because of travel date, service type or ECIMS application status.",
+        desc: "Cases with critical or high urgency because of travel date, service type or eCIMS application status.",
         rows: queues.urgentRows,
         tone: queues.urgentRows.length ? "amber" : "green",
         empty: "No urgent queries currently need review.",

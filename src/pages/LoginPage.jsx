@@ -82,8 +82,8 @@ export default function LoginPage({ onLogin }) {
               </p>
               <p>
                 {PERMISSIONS[selected.level].canChangeStatus
-                  ? "Can change QueryDesk ticket and ECIMS application statuses."
-                  : "Cannot change QueryDesk ticket or ECIMS application statuses."}
+                  ? "Can change QueryDesk ticket and eCIMS application statuses."
+                  : "Cannot change QueryDesk ticket or eCIMS application statuses."}
               </p>
             </div>
           </form>

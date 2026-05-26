@@ -52,7 +52,7 @@ function LinkedQuerySummaryCard({ query, label, tone, current, open, refDate, li
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <Mini label="Applicant" value={`${query.firstName} ${query.lastName}`} />
         <Mini label="Ticket status" value={ticketStatus} />
-        <Mini label="ECIMS status" value={ecimsStatus} />
+        <Mini label="eCIMS status" value={ecimsStatus} />
         <Mini label="Updated" value={`${fmtTime(activity.when)} by ${activity.who}`} />
       </div>
     </button>
@@ -147,7 +147,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   const changeApplicationStatus = (value) => {
     if (!permissions.canChangeApplicationStatus || value === ecimsStatus) return;
     update(q.id, (current) =>
-      appendAudit({ ...current, ecimsStatus: value }, `ECIMS application status changed from ${getEcimsStatus(current)} to ${value}.`)
+      appendAudit({ ...current, ecimsStatus: value }, `eCIMS application status changed from ${getEcimsStatus(current)} to ${value}.`)
     );
   };
 
@@ -173,7 +173,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
     };
     create(child);
     setChildText("");
-    notify("Child query created and linked to the parent application.");
+    notify("Child query raised!");
   };
 
   return (
@@ -203,7 +203,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
             <Mini label="Service type" value={q.serviceType} />
             <Mini label="Application type" value={q.applicationType} />
             {q.applicationType === "Group Application" && <Mini label="Group reference" value={q.groupReferenceNumber} />}
-            <Mini label="ECIMS application status" value={ecimsStatus} />
+            <Mini label="eCIMS application status" value={ecimsStatus} />
             <Mini label="Original support agent" value={q.originalSupportAgentName || q.ownerName} />
             <Mini label="Last commenter" value={activity.who} />
             <Mini label="Last updated" value={fmtTime(activity.when)} />
@@ -212,7 +212,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <Sel label="QueryDesk Ticket Status" value={ticketStatus} set={changeQueryStatus} opts={statusOptions} disabled={!canEditTicketStatus} />
             <Sel
-              label="ECIMS Application Status"
+              label="eCIMS Application Status"
               value={ecimsStatus}
               set={changeApplicationStatus}
               opts={ECIMS_APPLICATION_STATUSES}
@@ -221,7 +221,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
           </div>
           {lockMessage && <p className="mt-2 text-xs font-semibold text-slate-500">{lockMessage}</p>}
           {!permissions.canChangeStatus && (
-            <p className="mt-2 text-xs font-semibold text-slate-500">Only Supervisors and Coordinators can change QueryDesk ticket or ECIMS application status.</p>
+            <p className="mt-2 text-xs font-semibold text-slate-500">Only Supervisors and Coordinators can change QueryDesk ticket or eCIMS application status.</p>
           )}
         </Card>
 
