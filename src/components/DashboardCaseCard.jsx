@@ -3,12 +3,15 @@ import { cn } from "../utils/helpers.js";
 import { getEcimsStatus, getTicketStatus, lastActivity, sla, statusTone, urgency } from "../utils/queryRules.js";
 import Badge from "./Badge.jsx";
 
-export default function DashboardCaseCard({ q, open, refDate, sectionTone = "slate" }) {
+export default function DashboardCaseCard({ q, open, refDate, sectionTone = "slate", linkedCount = 0 }) {
   const [urgencyLabel, urgencyTone, days] = urgency(q, refDate);
   const [slaLabel, slaTone, elapsed, target] = sla(q, refDate);
   const ticketStatus = getTicketStatus(q, refDate);
   const ecimsStatus = getEcimsStatus(q);
   const activity = lastActivity(q);
+  const isChild = Boolean(q.parentId);
+  const relationshipTone = isChild ? "purple" : "blue";
+  const relationshipLabel = isChild ? "Child query" : "Parent query";
   const accent =
     {
       red: "border-l-rose-500 hover:border-rose-300",
@@ -39,7 +42,11 @@ export default function DashboardCaseCard({ q, open, refDate, sectionTone = "sla
   return (
     <button
       onClick={() => open(q)}
-      className={cn("w-full rounded-2xl border border-l-4 border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md", accent)}
+      className={cn(
+        "w-full rounded-2xl border border-l-4 border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        accent,
+        isChild && "ml-3 w-[calc(100%-0.75rem)] bg-slate-50/70"
+      )}
     >
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0 flex-1">
@@ -48,7 +55,8 @@ export default function DashboardCaseCard({ q, open, refDate, sectionTone = "sla
             <Badge t={urgencyTone}>{urgencyLabel}</Badge>
             <Badge t={slaTone}>{slaLabel}</Badge>
             <Badge t={statusTone(ticketStatus)}>{ticketStatus}</Badge>
-            {q.parentId && <Badge t="purple">Child query</Badge>}
+            <Badge t={relationshipTone}>{relationshipLabel}</Badge>
+            {!isChild && linkedCount > 0 && <Badge>{linkedCount + 1} linked</Badge>}
           </div>
           <p className="mt-2 text-sm font-bold text-slate-800">{q.queryType}</p>
           <p className="mt-2 text-sm leading-6 text-slate-600">{q.queryDetails}</p>

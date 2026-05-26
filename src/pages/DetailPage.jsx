@@ -24,6 +24,41 @@ import {
   urgency,
 } from "../utils/queryRules.js";
 
+function LinkedQuerySummaryCard({ query, label, tone, current, open, refDate, linkedToParent = false }) {
+  const ticketStatus = getTicketStatus(query, refDate);
+  const ecimsStatus = getEcimsStatus(query);
+  const activity = lastActivity(query);
+
+  return (
+    <button
+      type="button"
+      onClick={() => !current && open(query)}
+      disabled={current}
+      className={cn(
+        "w-full rounded-2xl border bg-white p-4 text-left ring-1 transition",
+        tone === "blue" ? "border-blue-100 ring-blue-100" : "border-violet-100 bg-slate-50/70 ring-violet-100",
+        !current && "hover:-translate-y-0.5 hover:shadow-sm",
+        current && "cursor-default"
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge t={tone}>{label}</Badge>
+        {current && <Badge>Current view</Badge>}
+        {linkedToParent && <span className="text-xs font-semibold text-slate-500">linked to parent</span>}
+      </div>
+      <p className="mt-3 break-all text-sm font-black text-slate-950">{query.applicationNumber || "No reference"}</p>
+      <p className="mt-1 text-sm font-bold text-slate-800">{query.queryType}</p>
+      <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{query.queryDetails}</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <Mini label="Applicant" value={`${query.firstName} ${query.lastName}`} />
+        <Mini label="Ticket status" value={ticketStatus} />
+        <Mini label="ECIMS status" value={ecimsStatus} />
+        <Mini label="Updated" value={`${fmtTime(activity.when)} by ${activity.who}`} />
+      </div>
+    </button>
+  );
+}
+
 export default function DetailPage({ q, user, back, update, refDate, create, open, notify, parentQuery, childrenQueries }) {
   const permissions = PERMISSIONS[user.level] || PERMISSIONS.agent;
   const ticketStatus = getTicketStatus(q, refDate);
@@ -37,6 +72,9 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   const [slaLabel, slaTone, elapsed, target] = sla(q, refDate);
   const [comment, setComment] = useState("");
   const [childText, setChildText] = useState("");
+  const groupParent = parentQuery || q;
+  const groupChildren = childrenQueries || [];
+  const hasLinkedQueries = Boolean(parentQuery || groupChildren.length);
   const statusOptions = getAllowedTicketStatuses(q, user, refDate);
   const lockMessage =
     ticketStatus === "Resolved"
@@ -188,21 +226,31 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
         </Card>
 
         <Card>
-          <h2 className="text-xl font-bold">Linked queries</h2>
-          {parentQuery && (
-            <button onClick={() => open(parentQuery)} className="mt-3 w-full rounded-xl bg-violet-50 p-3 text-left text-sm font-bold text-violet-700 ring-1 ring-violet-200">
-              Open parent: {parentQuery.applicationNumber}
-            </button>
-          )}
-          <div className="mt-3 space-y-2">
-            {childrenQueries.length ? (
-              childrenQueries.map((child) => (
-                <button key={child.id} onClick={() => open(child)} className="w-full rounded-xl bg-slate-50 p-3 text-left text-sm ring-1 ring-slate-200">
-                  Child: {child.queryDetails.slice(0, 70)}
-                </button>
-              ))
+          <h2 className="text-xl font-bold">Linked query group</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            {hasLinkedQueries ? "Parent and child queries linked to this applicant issue." : "No linked child queries yet."}
+          </p>
+
+          <div className="mt-4 space-y-3">
+            <LinkedQuerySummaryCard query={groupParent} label="Parent query" tone="blue" current={groupParent.id === q.id} open={open} refDate={refDate} />
+
+            {groupChildren.length ? (
+              <div className="relative space-y-3 border-l border-slate-200 pl-4">
+                {groupChildren.map((child) => (
+                  <LinkedQuerySummaryCard
+                    key={child.id}
+                    query={child}
+                    label="Child query"
+                    tone="purple"
+                    current={child.id === q.id}
+                    open={open}
+                    refDate={refDate}
+                    linkedToParent
+                  />
+                ))}
+              </div>
             ) : (
-              <p className="text-sm text-slate-500">No child queries yet.</p>
+              <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500 ring-1 ring-slate-200">No child queries yet.</p>
             )}
           </div>
           <label className="mt-5 block">

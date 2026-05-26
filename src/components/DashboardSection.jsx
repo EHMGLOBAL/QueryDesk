@@ -2,6 +2,11 @@ import { cn } from "../utils/helpers.js";
 import DashboardCaseCard from "./DashboardCaseCard.jsx";
 
 export default function DashboardSection({ id, title, desc, count, toneName, rows, open, refDate, emptyText }) {
+  const childCounts = rows.reduce((counts, query) => {
+    if (!query.parentId) return counts;
+    counts.set(query.parentId, (counts.get(query.parentId) || 0) + 1);
+    return counts;
+  }, new Map());
   const accent =
     {
       red: "border-t-rose-500",
@@ -32,7 +37,7 @@ export default function DashboardSection({ id, title, desc, count, toneName, row
       </div>
       <div className="space-y-3">
         {rows.length ? (
-          rows.map((query) => <DashboardCaseCard key={query.id} q={query} open={open} refDate={refDate} sectionTone={toneName} />)
+          rows.map((query) => <DashboardCaseCard key={query.id} q={query} open={open} refDate={refDate} sectionTone={toneName} linkedCount={childCounts.get(query.id) || 0} />)
         ) : (
           <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500 ring-1 ring-slate-200">{emptyText}</p>
         )}

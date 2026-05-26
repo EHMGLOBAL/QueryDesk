@@ -45,6 +45,9 @@ export default function App() {
   const permissions = PERMISSIONS[sessionUser.level] || PERMISSIONS.agent;
   const visibleData = data.filter((query) => userCanSee(query, sessionUser));
   const current = data.find((query) => query.id === selected && userCanSee(query, sessionUser));
+  const currentRootId = current?.parentId || current?.id;
+  const currentParentQuery = current?.parentId ? data.find((query) => query.id === current.parentId && userCanSee(query, sessionUser)) : null;
+  const currentChildrenQueries = currentRootId ? data.filter((query) => query.parentId === currentRootId && userCanSee(query, sessionUser)) : [];
 
   const open = (query) => setSelected(query.id);
   const update = (id, fn) => setData((queries) => normaliseQueries(queries.map((query) => (query.id === id ? fn(query) : query))));
@@ -83,8 +86,8 @@ export default function App() {
       create={create}
       open={open}
       notify={setNotice}
-      parentQuery={current.parentId ? data.find((query) => query.id === current.parentId) : null}
-      childrenQueries={data.filter((query) => query.parentId === current.id && userCanSee(query, sessionUser))}
+      parentQuery={currentParentQuery}
+      childrenQueries={currentChildrenQueries}
     />
   ) : page === "dashboard" ? (
     <Dashboard data={visibleData} open={open} refDate={refDate} openQueue={setPage} />
@@ -97,6 +100,7 @@ export default function App() {
       data={visibleData}
       open={open}
       refDate={refDate}
+      groupLinked
     />
   ) : page === "my" ? (
     <ListPage
