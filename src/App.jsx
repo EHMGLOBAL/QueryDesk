@@ -97,13 +97,13 @@ export default function App() {
       childrenQueries={currentChildrenQueries}
     />
   ) : page === "dashboard" ? (
-    <Dashboard data={visibleData} open={open} refDate={refDate} openQueue={setPage} />
+    <Dashboard data={visibleData} open={open} refDate={refDate} openQueue={setPage} user={sessionUser} update={update} notify={setNotice} />
   ) : page.startsWith("queue-") ? (
     <QueueLandingPage type={page} data={visibleData} open={open} refDate={refDate} back={() => setPage("dashboard")} />
   ) : page === "all" ? (
     <ListPage
       title="Find Query"
-      desc="Search by application number, name, surname, date of birth, email, ticket status, eCIMS status or query details."
+      desc="Search by application number, name, surname, date of birth, email, Ticket Status, eCIMS status or query details."
       data={visibleData}
       open={open}
       refDate={refDate}
@@ -128,7 +128,7 @@ export default function App() {
   ) : page === "help" ? (
     <HelpCentrePage />
   ) : (
-    <Dashboard data={visibleData} open={open} refDate={refDate} openQueue={setPage} />
+    <Dashboard data={visibleData} open={open} refDate={refDate} openQueue={setPage} user={sessionUser} update={update} notify={setNotice} />
   );
 
   return (

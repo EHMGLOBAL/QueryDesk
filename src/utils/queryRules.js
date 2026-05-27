@@ -44,17 +44,42 @@ export function isResolvedWithinReopenWindow(query, ref = new Date()) {
 export function normaliseQuery(query, ref = new Date()) {
   const ticketStatus = query.ticketStatus || query.status || "Open";
   const resolvedAt = ticketStatus === "Resolved" ? query.resolvedAt || query.updatedAt || query.createdAt : query.resolvedAt || null;
+  const expiredResolved = ticketStatus === "Resolved" && resolvedAt && isResolvedExpired({ ...query, ticketStatus, resolvedAt }, ref);
+  const deactivatedAt =
+    query.deactivatedAt ||
+    (expiredResolved ? new Date(new Date(resolvedAt).getTime() + RESOLVED_REOPEN_WINDOW_MS).toISOString() : null);
+  const hasDeactivationAudit = (query.comments || []).some((entry) => entry.body === "Ticket became Deactivated after the 3-day reactivation window.");
+  const comments =
+    expiredResolved && !hasDeactivationAudit
+      ? [
+          ...(query.comments || []),
+          {
+            id: `${query.id || "query"}-deactivated`,
+            author: "System",
+            authorId: "system",
+            role: "System",
+            timestamp: deactivatedAt,
+            body: "Ticket became Deactivated after the 3-day reactivation window.",
+          },
+        ]
+      : query.comments || [];
 
   return {
     ...query,
-    ticketStatus: ticketStatus === "Resolved" && resolvedAt && isResolvedExpired({ ...query, ticketStatus, resolvedAt }, ref) ? "Deactivated" : ticketStatus,
+    ticketStatus: expiredResolved ? "Deactivated" : ticketStatus,
     ecimsStatus: getEcimsStatus(query),
     queryOrigin: query.queryOrigin || "Email",
     originalSupportAgentId: query.originalSupportAgentId || query.ownerId,
     originalSupportAgentName: query.originalSupportAgentName || query.ownerName,
     attachments: normaliseAttachments(query.attachments || []),
+    comments,
     resolvedAt,
+    deactivatedAt,
     reopenedAt: query.reopenedAt || null,
+    reactivatedAt: query.reactivatedAt || null,
+    reactivatedBy: query.reactivatedBy || null,
+    reactivationLabel: Boolean(query.reactivationLabel || query.reactivatedAt),
+    reactivationRequests: query.reactivationRequests || [],
   };
 }
 
@@ -70,6 +95,7 @@ export function urgency(query, ref = new Date()) {
 
   if (ecimsStatus === "Cancelled" || ["Cancelled", "Deactivated"].includes(ticketStatus)) return ["Closed", "slate", days];
   if (ticketStatus === "Unresolved" || slaState === "Breached") return ["Critical", "red", days];
+  if (query.reactivatedAt) return ["High", "orange", days];
   if (query.reopenedAt || slaState === "At Risk") return ["High", "orange", days];
   if (days === null) return ["No travel date", "slate", null];
   if (["Incomplete", "Queried"].includes(ecimsStatus) && days <= 7) return ["Critical", "red", days];
@@ -112,6 +138,7 @@ export function priorityScore(query, ref = new Date()) {
   score += ticketWeight[ticketStatus] ?? 0;
   score += ecimsWeight[ecimsStatus] ?? 0;
   if (query.serviceType === "Expedited") score += 35;
+  if (query.reactivatedAt || query.reactivationLabel) score += 160;
   if (query.reopenedAt) score += 80;
   if (ticketStatus === "Unresolved") score += 60;
   if (days !== null) score += Math.max(0, 40 - Math.max(days, 0) * 4);
@@ -142,6 +169,7 @@ export function statusTone(status) {
       Deactivated: "slate",
       Open: "blue",
       "In Progress": "amber",
+      Reactivated: "purple",
     }[status] || "blue"
   );
 }
@@ -218,6 +246,7 @@ export function getDashboardQueues(data, refDate) {
         ["Critical", "High"].includes(urgency(query, refDate)[0]) ||
         ["Breached"].includes(sla(query, refDate)[0]) ||
         getTicketStatus(query, refDate) === "Unresolved" ||
+        query.reactivatedAt ||
         query.reopenedAt
     )
     .sort(prioritySort);

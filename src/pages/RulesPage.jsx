@@ -11,7 +11,7 @@ export default function RulesPage() {
           <div>
             <h2 className="font-bold">Urgency</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Urgency is based on ticket status, eCIMS application status, travel date, service type, SLA state and reopened or unresolved state.
+              Urgency is based on Ticket Status, eCIMS application status, travel date, service type, SLA state and reopened or unresolved state.
             </p>
           </div>
           <div>

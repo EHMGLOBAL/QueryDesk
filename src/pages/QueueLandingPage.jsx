@@ -8,7 +8,7 @@ export default function QueueLandingPage({ type, data, open, refDate, back }) {
     {
       "queue-priority": {
         title: "Priority work queue",
-        desc: "Cases sorted by calculated urgency across ticket status, eCIMS status, travel date, service type, SLA and reopened state.",
+        desc: "Cases sorted by calculated urgency across Ticket Status, eCIMS status, travel date, service type, SLA and reactivated or reopened state.",
         rows: queues.priorityRows,
         tone: "blue",
         empty: "No active priority queries.",

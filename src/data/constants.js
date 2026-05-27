@@ -12,7 +12,7 @@ export const PERMISSIONS = {
     canComment: true,
     canCreateChild: true,
     canChangeStatus: false,
-    canChangeApplicationStatus: false,
+    canChangeApplicationStatus: true,
     canReopenResolved: false,
     canReopenDeactivated: false,
     canViewReports: true,

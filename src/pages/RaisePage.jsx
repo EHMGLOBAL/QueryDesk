@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "../components/Card.jsx";
 import { Field, Sel } from "../components/FormControls.jsx";
 import Header from "../components/Header.jsx";
@@ -27,9 +27,18 @@ export default function RaisePage({ data, user, create, open, notify }) {
   });
   const [attachments, setAttachments] = useState([]);
   const [attachmentError, setAttachmentError] = useState("");
+  const [createAsChild, setCreateAsChild] = useState(false);
 
   const set = (key, value) => setForm((current) => ({ ...current, [key]: key === "applicationNumber" ? value.toUpperCase() : value }));
   const normalise = (value) => String(value || "").trim().toLowerCase();
+  const exactReferenceMatch = form.applicationNumber
+    ? data.find((query) => normalise(query.applicationNumber) === normalise(form.applicationNumber))
+    : null;
+  const linkedParent = exactReferenceMatch?.parentId ? data.find((query) => query.id === exactReferenceMatch.parentId) || exactReferenceMatch : exactReferenceMatch;
+
+  useEffect(() => {
+    if (!linkedParent) setCreateAsChild(false);
+  }, [linkedParent]);
 
   const matches = data
     .map((query) => {
@@ -103,26 +112,32 @@ export default function RaisePage({ data, user, create, open, notify }) {
       return;
     }
 
-    const initialAudit = audit(user, `Initial query raised: ${form.queryDetails}`);
+    if (createAsChild && !linkedParent) {
+      notify("Child queries can only be created when this reference already exists.");
+      return;
+    }
+
+    const isChildQuery = Boolean(createAsChild && linkedParent);
+    const initialAudit = audit(user, `${isChildQuery ? "Child query raised" : "Initial query raised"}: ${form.queryDetails}`);
     const attachmentAudit = attachments.map((attachment) => audit(user, `Attachment added: ${attachment.name}`));
 
     create({
       ...form,
       id: uid("q"),
-      parentId: null,
+      parentId: isChildQuery ? linkedParent.id : null,
       attachments,
       ownerId: user.id,
       ownerName: user.name,
-      assignedIds: [user.id, "u3"],
+      assignedIds: isChildQuery ? Array.from(new Set([...(linkedParent.assignedIds || []), user.id, "u3"])) : [user.id, "u3"],
       ticketStatus: "Open",
       resolvedAt: null,
       reopenedAt: null,
-      originalSupportAgentId: user.id,
-      originalSupportAgentName: user.name,
+      originalSupportAgentId: isChildQuery ? linkedParent.originalSupportAgentId || linkedParent.ownerId : user.id,
+      originalSupportAgentName: isChildQuery ? linkedParent.originalSupportAgentName || linkedParent.ownerName : user.name,
       createdAt: new Date().toISOString(),
       comments: [initialAudit, ...attachmentAudit],
     });
-    notify("Query raised!");
+    notify(isChildQuery ? "Child query raised!" : "Query raised!");
   };
 
   return (
@@ -154,7 +169,7 @@ export default function RaisePage({ data, user, create, open, notify }) {
           <Field label="Applicant Email" type="email" value={form.applicantEmail} set={(value) => set("applicantEmail", value)} required />
           <Field label="Applicant Phone" value={form.applicantPhone} set={(value) => set("applicantPhone", value)} required={form.queryOrigin === "Phone"} />
           <Sel label="Query Type" value={form.queryType} set={(value) => set("queryType", value)} opts={QUERY_TYPES} required />
-          <Sel label="eCIMS Application Status" value={form.ecimsStatus} set={(value) => set("ecimsStatus", value)} opts={ECIMS_APPLICATION_STATUSES} />
+          <Sel label="eCIMS application status" value={form.ecimsStatus} set={(value) => set("ecimsStatus", value)} opts={ECIMS_APPLICATION_STATUSES} />
           <Field label="Travel Date" type="date" value={form.travelDate} set={(value) => set("travelDate", value)} />
           <Sel label="Service Type" value={form.serviceType} set={(value) => set("serviceType", value)} opts={SERVICE_TYPES} />
           <Sel label="Application Type" value={form.applicationType} set={(value) => set("applicationType", value)} opts={APP_TYPES} required />
@@ -162,6 +177,32 @@ export default function RaisePage({ data, user, create, open, notify }) {
             <Field label="Group Application Reference Number" value={form.groupReferenceNumber} set={(value) => set("groupReferenceNumber", value)} />
           )}
           <Field label="Tracking Number" value={form.trackingNumber} set={(value) => set("trackingNumber", value)} />
+        </div>
+
+        <div className={linkedParent ? "mt-4 rounded-2xl bg-blue-50 p-4 ring-1 ring-blue-100" : "mt-4 rounded-2xl bg-slate-50 p-4 opacity-90 ring-1 ring-slate-200"}>
+          {linkedParent ? (
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="font-bold text-slate-950">Existing query found</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  You can create this as a child query linked to the existing record: <span className="font-bold">{linkedParent.applicationNumber}</span>.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreateAsChild((current) => !current)}
+                className={createAsChild ? "rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white" : "rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 ring-1 ring-slate-200"}
+              >
+                {createAsChild ? "Child query selected" : "Create as child query"}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="font-bold text-slate-700">Child query unavailable</p>
+              <p className="mt-1 text-sm leading-6 text-slate-500">Enter an existing application reference to create a linked child query.</p>
+              <p className="mt-2 text-xs font-semibold text-slate-500">Child queries can only be created when this reference already exists.</p>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">

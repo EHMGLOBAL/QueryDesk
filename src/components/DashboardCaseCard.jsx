@@ -55,6 +55,7 @@ export default function DashboardCaseCard({ q, open, refDate, sectionTone = "sla
             <Badge t={urgencyTone}>{urgencyLabel}</Badge>
             <Badge t={slaTone}>{slaLabel}</Badge>
             <Badge t={statusTone(ticketStatus)}>{ticketStatus}</Badge>
+            {q.reactivationLabel && <Badge t="purple">Reactivated</Badge>}
             <Badge t={relationshipTone}>{relationshipLabel}</Badge>
             {!isChild && linkedCount > 0 && <Badge>{linkedCount + 1} linked</Badge>}
           </div>

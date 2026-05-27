@@ -41,7 +41,7 @@ export default function AnalyticsPage({ data, open, refDate, user }) {
       "Query Type",
       "Owner",
       "Ticket Status",
-      "eCIMS Application Status",
+      "eCIMS application status",
       "Query Origin",
       "Urgency",
       "SLA",
@@ -107,7 +107,7 @@ export default function AnalyticsPage({ data, open, refDate, user }) {
                 <th className="px-4 py-3">Applicant</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Owner</th>
-                <th className="px-4 py-3">Ticket status</th>
+                <th className="px-4 py-3">Ticket Status</th>
                 <th className="px-4 py-3">eCIMS status</th>
                 <th className="px-4 py-3">Origin</th>
                 <th className="px-4 py-3">Urgency</th>

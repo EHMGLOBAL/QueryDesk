@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Badge from "../components/Badge.jsx";
 import Card from "../components/Card.jsx";
 import { Sel } from "../components/FormControls.jsx";
@@ -44,6 +44,7 @@ function LinkedQuerySummaryCard({ query, label, tone, current, open, refDate, li
       <div className="flex flex-wrap items-center gap-2">
         <Badge t={tone}>{label}</Badge>
         {current && <Badge>Current view</Badge>}
+        {query.reactivationLabel && <Badge t="purple">Reactivated</Badge>}
         {linkedToParent && <span className="text-xs font-semibold text-slate-500">linked to parent</span>}
       </div>
       <p className="mt-3 break-all text-sm font-black text-slate-950">{query.applicationNumber || "No reference"}</p>
@@ -72,76 +73,146 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   const [slaLabel, slaTone, elapsed, target] = sla(q, refDate);
   const [comment, setComment] = useState("");
   const [childText, setChildText] = useState("");
+  const [ticketStatusDraft, setTicketStatusDraft] = useState(ticketStatus);
+  const [statusValidation, setStatusValidation] = useState("");
+  const [requestingReactivation, setRequestingReactivation] = useState(false);
+  const [reactivationReason, setReactivationReason] = useState("");
   const groupParent = parentQuery || q;
   const groupChildren = childrenQueries || [];
   const hasLinkedQueries = Boolean(parentQuery || groupChildren.length);
   const statusOptions = getAllowedTicketStatuses(q, user, refDate);
+  const isSupervisor = user.level === "supervisor";
+  const isSupportAgent = user.level === "agent";
+  const pendingUserReactivationRequest = (q.reactivationRequests || []).find(
+    (request) => request.status === "pending" && request.requesterId === user.id
+  );
+  const canRequestReactivation =
+    isSupportAgent && ticketStatus === "Resolved" && isResolvedWithinReopenWindow(q, refDate) && !pendingUserReactivationRequest;
+  const hasSupervisorStatusChange = isSupervisor && ticketStatusDraft !== ticketStatus;
   const lockMessage =
     ticketStatus === "Resolved"
       ? isResolvedWithinReopenWindow(q, refDate)
         ? "This query is resolved. A Supervisor or Coordinator can reopen it by adding a comment within 3 days."
-        : "This query is locked because it has been resolved for more than 3 days. Coordinator access is required to reopen it."
+        : "This query is Deactivated. Only Coordinator/Admin can reopen this ticket."
       : ticketStatus === "Deactivated"
-        ? "This query is locked because it has been resolved for more than 3 days. Coordinator access is required to reopen it."
+        ? "This query is Deactivated. Only Coordinator/Admin can reopen this ticket."
         : "";
+
+  useEffect(() => {
+    setTicketStatusDraft(ticketStatus);
+    setStatusValidation("");
+  }, [q.id, ticketStatus]);
 
   const appendAudit = (query, body) => ({ ...query, comments: [...(query.comments || []), audit(user, body)] });
 
+  const statusChangeUpdate = (current, value, commentBody = "") => {
+    const currentStatus = getTicketStatus(current, refDate);
+    const now = new Date().toISOString();
+    const reactivated = ["Resolved", "Deactivated"].includes(currentStatus) && !["Resolved", "Deactivated"].includes(value);
+    const commentEntry = commentBody ? [audit(user, commentBody)] : [];
+    const auditText = commentBody
+      ? `Ticket Status changed from ${currentStatus} to ${value}. Comment: ${commentBody}`
+      : `Ticket Status changed from ${currentStatus} to ${value}.`;
+
+    return {
+      ...current,
+      ticketStatus: value,
+      resolvedAt: value === "Resolved" ? now : reactivated ? null : current.resolvedAt,
+      deactivatedAt: value === "Resolved" ? null : reactivated ? null : current.deactivatedAt,
+      reopenedAt: reactivated ? now : current.reopenedAt,
+      reactivatedAt: reactivated ? now : value === "Resolved" ? null : current.reactivatedAt,
+      reactivatedBy: reactivated ? user.name : value === "Resolved" ? null : current.reactivatedBy,
+      reactivationLabel: reactivated ? true : value === "Resolved" ? false : current.reactivationLabel,
+      comments: [...(current.comments || []), ...commentEntry, audit(user, auditText)],
+    };
+  };
+
   const addComment = () => {
-    if (!comment.trim()) return;
     if (!canComment) {
       notify(lockMessage || "You do not have permission to comment on this query.");
       return;
     }
+    if (hasSupervisorStatusChange && !comment.trim()) {
+      setStatusValidation("Add a comment before changing Ticket Status.");
+      notify("Add a comment before changing Ticket Status.");
+      return;
+    }
+    if (hasSupervisorStatusChange && !canSetTicketStatus(q, user, ticketStatusDraft, refDate)) {
+      notify("You do not have permission to set that Ticket Status.");
+      return;
+    }
+    if (!comment.trim()) return;
 
     update(q.id, (current) => {
       const currentStatus = getTicketStatus(current, refDate);
       const next = { ...current, comments: [...(current.comments || []), audit(user, comment.trim())] };
       if (currentStatus === "Resolved" && (permissions.canReopenResolved || user.level === "admin")) {
         return appendAudit(
-          { ...next, ticketStatus: "Open", reopenedAt: new Date().toISOString(), resolvedAt: null },
-          "System note: resolved query reopened within the 3 day window because an authorised user added a follow-up comment."
+          {
+            ...next,
+            ticketStatus: "Open",
+            reopenedAt: new Date().toISOString(),
+            reactivatedAt: new Date().toISOString(),
+            reactivatedBy: user.name,
+            reactivationLabel: true,
+            resolvedAt: null,
+            deactivatedAt: null,
+          },
+          "Reactivated: Ticket Status changed from Resolved to Open after an authorised comment."
         );
       }
       if (currentStatus === "Deactivated" && (permissions.canReopenDeactivated || user.level === "admin")) {
         return appendAudit(
-          { ...next, ticketStatus: "Open", reopenedAt: new Date().toISOString(), resolvedAt: null },
-          "System note: deactivated query reopened by Coordinator/Admin comment."
+          {
+            ...next,
+            ticketStatus: "Open",
+            reopenedAt: new Date().toISOString(),
+            reactivatedAt: new Date().toISOString(),
+            reactivatedBy: user.name,
+            reactivationLabel: true,
+            resolvedAt: null,
+            deactivatedAt: null,
+          },
+          "Reactivated: Ticket Status changed from Deactivated to Open by Coordinator/Admin comment."
         );
+      }
+      if (hasSupervisorStatusChange) {
+        return statusChangeUpdate(current, ticketStatusDraft, comment.trim());
       }
       return next;
     });
 
     setComment("");
-    if (ticketStatus === "Resolved" && (permissions.canReopenResolved || user.level === "admin")) notify("Resolved query reopened because a new comment was added.");
+    setStatusValidation("");
+    if (hasSupervisorStatusChange) notify("Ticket Status updated.");
+    if (ticketStatus === "Resolved" && (permissions.canReopenResolved || user.level === "admin")) notify("Reactivated");
     if (ticketStatus === "Deactivated" && (permissions.canReopenDeactivated || user.level === "admin")) {
-      notify("Deactivated query reopened because a Coordinator/Admin comment was added.");
+      notify("Reactivated");
     }
   };
 
   const changeQueryStatus = (value) => {
+    if (isSupervisor) {
+      if (value !== ticketStatus && !canSetTicketStatus(q, user, value, refDate)) {
+        notify("You do not have permission to set that Ticket Status.");
+        return;
+      }
+      setTicketStatusDraft(value);
+      setStatusValidation(value !== ticketStatus && !comment.trim() ? "Add a comment before changing Ticket Status." : "");
+      return;
+    }
     if (value === ticketStatus) return;
     if (value === "Resolved" && !canResolveTicket(user)) {
       notify("Only Coordinator/Admin can resolve tickets.");
       return;
     }
     if (!canSetTicketStatus(q, user, value, refDate)) {
-      notify("You do not have permission to set that ticket status.");
+      notify("You do not have permission to set that Ticket Status.");
       return;
     }
 
-    update(q.id, (current) => {
-      const currentStatus = getTicketStatus(current, refDate);
-      const now = new Date().toISOString();
-      const statusUpdate = {
-        ...current,
-        ticketStatus: value,
-        resolvedAt: value === "Resolved" ? now : current.resolvedAt,
-        reopenedAt: ["Resolved", "Deactivated"].includes(currentStatus) && !["Resolved", "Deactivated"].includes(value) ? now : current.reopenedAt,
-      };
-      if (value !== "Resolved" && ["Resolved", "Deactivated"].includes(currentStatus)) statusUpdate.resolvedAt = null;
-      return appendAudit(statusUpdate, `Ticket status changed from ${currentStatus} to ${value}.`);
-    });
+    update(q.id, (current) => statusChangeUpdate(current, value, comment.trim()));
+    if (comment.trim()) setComment("");
   };
 
   const changeApplicationStatus = (value) => {
@@ -176,12 +247,40 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
     notify("Child query raised!");
   };
 
+  const submitReactivationRequest = () => {
+    const reason = reactivationReason.trim();
+    if (!reason) {
+      notify("Add a reason before requesting reactivation.");
+      return;
+    }
+
+    update(q.id, (current) => ({
+      ...current,
+      reactivationRequests: [
+        ...(current.reactivationRequests || []),
+        {
+          id: uid("rr"),
+          requesterId: user.id,
+          requesterName: user.name,
+          justification: reason,
+          timestamp: new Date().toISOString(),
+          status: "pending",
+        },
+      ],
+      comments: [...(current.comments || []), audit(user, `Reactivation requested: ${reason}`)],
+    }));
+    setReactivationReason("");
+    setRequestingReactivation(false);
+    notify("Reactivation request sent.");
+  };
+
   return (
     <div className="space-y-7">
       <button onClick={back} className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
         &larr; Back
       </button>
       <Header title={q.applicationNumber || "Query detail"} desc={`${q.firstName} ${q.lastName} - ${q.queryType}`} />
+      {q.reactivationLabel && <Badge t="purple">Reactivated</Badge>}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Stat title="Urgency" value={urgencyLabel} note={days === null ? "No travel date" : `${days} days`} t={urgencyTone} />
@@ -190,7 +289,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
         <Stat title="Owner" value={q.ownerName.split(" ")[0]} note={q.ownerName} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+      <div>
         <Card>
           <h2 className="text-xl font-bold">Case information</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -213,9 +312,15 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
             <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">{q.queryDetails}</p>
           </section>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <Sel label="Ticket Status" value={ticketStatus} set={changeQueryStatus} opts={statusOptions} disabled={!canEditTicketStatus} />
             <Sel
-              label="eCIMS Application Status"
+              label="Ticket Status"
+              value={isSupervisor ? ticketStatusDraft : ticketStatus}
+              set={changeQueryStatus}
+              opts={statusOptions}
+              disabled={!canEditTicketStatus}
+            />
+            <Sel
+              label="eCIMS application status"
               value={ecimsStatus}
               set={changeApplicationStatus}
               opts={ECIMS_APPLICATION_STATUSES}
@@ -223,46 +328,55 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
             />
           </div>
           {lockMessage && <p className="mt-2 text-xs font-semibold text-slate-500">{lockMessage}</p>}
-          {!permissions.canChangeStatus && (
-            <p className="mt-2 text-xs font-semibold text-slate-500">Only Supervisors and Coordinators can change ticket or eCIMS application status.</p>
+          {isSupportAgent && <p className="mt-2 text-xs font-semibold text-slate-500">Only Supervisors and Coordinators can change Ticket Status.</p>}
+          {isSupervisor && canEditTicketStatus && (
+            <p className="mt-2 text-xs font-semibold text-slate-500">Supervisors must add a comment before changing Ticket Status.</p>
           )}
-        </Card>
-
-        <Card>
-          <h2 className="text-xl font-bold">Linked query group</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
-            {hasLinkedQueries ? "Parent and child queries linked to this applicant issue." : "No linked child queries yet."}
-          </p>
-
-          <div className="mt-4 space-y-3">
-            <LinkedQuerySummaryCard query={groupParent} label="Parent query" tone="blue" current={groupParent.id === q.id} open={open} refDate={refDate} />
-
-            {groupChildren.length ? (
-              <div className="relative space-y-3 border-l border-slate-200 pl-4">
-                {groupChildren.map((child) => (
-                  <LinkedQuerySummaryCard
-                    key={child.id}
-                    query={child}
-                    label="Child query"
-                    tone="purple"
-                    current={child.id === q.id}
-                    open={open}
-                    refDate={refDate}
-                    linkedToParent
-                  />
-                ))}
+          {statusValidation && <p className="mt-2 text-xs font-bold text-rose-700">{statusValidation}</p>}
+          <div className="mt-6 rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-200">
+            <label className="block">
+              <span className="mb-1 block text-sm font-semibold">Add comment</span>
+              <textarea
+                value={comment}
+                onChange={(event) => {
+                  setComment(event.target.value);
+                  if (event.target.value.trim()) setStatusValidation("");
+                }}
+                rows={4}
+                disabled={!canComment}
+                className="input disabled:bg-slate-100"
+              />
+            </label>
+            <button
+              onClick={addComment}
+              disabled={!canComment || (!comment.trim() && !hasSupervisorStatusChange)}
+              className="mt-3 rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:bg-slate-300"
+            >
+              Add comment
+            </button>
+            {canRequestReactivation && (
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                {!requestingReactivation ? (
+                  <button type="button" onClick={() => setRequestingReactivation(true)} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
+                    Request to reactivate
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <label className="block">
+                      <span className="mb-1 block text-sm font-semibold">Reactivation reason</span>
+                      <textarea value={reactivationReason} onChange={(event) => setReactivationReason(event.target.value)} rows={3} className="input" />
+                    </label>
+                    <button type="button" onClick={submitReactivationRequest} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white">
+                      Send request
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500 ring-1 ring-slate-200">No child queries yet.</p>
+            )}
+            {pendingUserReactivationRequest && (
+              <p className="mt-4 rounded-2xl bg-blue-50 p-3 text-sm font-semibold text-blue-800 ring-1 ring-blue-100">Reactivation request sent.</p>
             )}
           </div>
-          <label className="mt-5 block">
-            <span className="mb-1 block text-sm font-semibold">Create child query</span>
-            <textarea value={childText} onChange={(event) => setChildText(event.target.value)} rows={4} disabled={!canCreateChild} className="input disabled:bg-slate-100" />
-          </label>
-          <button onClick={createChild} disabled={!canCreateChild || !childText.trim()} className="mt-3 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white disabled:bg-slate-300">
-            Create child query
-          </button>
         </Card>
       </div>
 
@@ -319,34 +433,66 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
         )}
       </Card>
 
-      <Card>
-        <h2 className="text-xl font-bold">Comments and audit trail</h2>
-        <div className="mt-4 space-y-3">
-          {(q.comments || []).map((entry) => (
-            <div
-              key={entry.id}
-              className={cn(
-                "rounded-2xl p-4 ring-1",
-                entry.role === "Coordinator" ? "bg-blue-50 ring-blue-200" : entry.role === "Supervisor" ? "bg-violet-50 ring-violet-200" : "bg-slate-50 ring-slate-200"
-              )}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-bold">{entry.author}</p>
-                <Badge t={entry.role === "Coordinator" ? "blue" : entry.role === "Supervisor" ? "purple" : "slate"}>{entry.role}</Badge>
-                <span className="text-xs text-slate-500">{fmtTime(entry.timestamp)}</span>
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        <Card>
+          <h2 className="text-xl font-bold">Comments and audit trail</h2>
+          <div className="mt-4 space-y-3">
+            {(q.comments || []).map((entry) => (
+              <div
+                key={entry.id}
+                className={cn(
+                  "rounded-2xl p-4 ring-1",
+                  entry.role === "Coordinator" ? "bg-blue-50 ring-blue-200" : entry.role === "Supervisor" ? "bg-violet-50 ring-violet-200" : "bg-slate-50 ring-slate-200"
+                )}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold">{entry.author}</p>
+                  <Badge t={entry.role === "Coordinator" ? "blue" : entry.role === "Supervisor" ? "purple" : "slate"}>{entry.role}</Badge>
+                  <span className="text-xs text-slate-500">{fmtTime(entry.timestamp)}</span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{entry.body}</p>
               </div>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{entry.body}</p>
-            </div>
-          ))}
-        </div>
-        <label className="mt-5 block">
-          <span className="mb-1 block text-sm font-semibold">Add comment</span>
-            <textarea value={comment} onChange={(event) => setComment(event.target.value)} rows={4} disabled={!canComment} className="input disabled:bg-slate-100" />
-        </label>
-        <button onClick={addComment} disabled={!canComment || !comment.trim()} className="mt-3 rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white disabled:bg-slate-300">
-          Add comment
-        </button>
-      </Card>
+            ))}
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="text-xl font-bold">Linked query group</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            {hasLinkedQueries ? "Parent and child queries linked to this applicant issue." : "No linked child queries yet."}
+          </p>
+
+          <div className="mt-4 space-y-3">
+            <LinkedQuerySummaryCard query={groupParent} label="Parent query" tone="blue" current={groupParent.id === q.id} open={open} refDate={refDate} />
+
+            {groupChildren.length ? (
+              <div className="relative space-y-3 border-l border-slate-200 pl-4">
+                {groupChildren.map((child) => (
+                  <LinkedQuerySummaryCard
+                    key={child.id}
+                    query={child}
+                    label="Child query"
+                    tone="purple"
+                    current={child.id === q.id}
+                    open={open}
+                    refDate={refDate}
+                    linkedToParent
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500 ring-1 ring-slate-200">No child queries yet.</p>
+            )}
+          </div>
+          <label className="mt-5 block">
+            <span className="mb-1 block text-sm font-semibold">Create child query</span>
+            <textarea value={childText} onChange={(event) => setChildText(event.target.value)} rows={4} disabled={!canCreateChild} className="input disabled:bg-slate-100" />
+          </label>
+          <button onClick={createChild} disabled={!canCreateChild || !childText.trim()} className="mt-3 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white disabled:bg-slate-300">
+            Create child query
+          </button>
+        </Card>
+      </div>
     </div>
   );
 }

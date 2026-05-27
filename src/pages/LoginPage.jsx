@@ -80,11 +80,8 @@ export default function LoginPage({ onLogin }) {
               <p className="mt-1">
                 {PERMISSIONS[selected.level].scope === "all" ? "Can view all queries." : "Can view owned or assigned queries only."}
               </p>
-              <p>
-                {PERMISSIONS[selected.level].canChangeStatus
-                  ? "Can change ticket and eCIMS application statuses."
-                  : "Cannot change ticket or eCIMS application statuses."}
-              </p>
+              <p>{PERMISSIONS[selected.level].canChangeStatus ? "Can change Ticket Status." : "Cannot change Ticket Status."}</p>
+              <p>{PERMISSIONS[selected.level].canChangeApplicationStatus ? "Can update eCIMS application status." : "Cannot update eCIMS application status."}</p>
             </div>
           </form>
         </Card>

@@ -27,6 +27,7 @@ export default function QueryCard({ q, open, refDate, compact = false, linkedCou
             <Badge t={urgencyTone}>{urgencyLabel}</Badge>
             <Badge t={slaTone}>{slaLabel}</Badge>
             <Badge t={statusTone(ticketStatus)}>{ticketStatus}</Badge>
+            {q.reactivationLabel && <Badge t="purple">Reactivated</Badge>}
             {hasLinkedQueries ? (
               <>
                 <Badge t="blue">Linked queries</Badge>
