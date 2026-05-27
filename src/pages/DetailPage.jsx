@@ -51,8 +51,8 @@ function LinkedQuerySummaryCard({ query, label, tone, current, open, refDate, li
       <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{query.queryDetails}</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <Mini label="Applicant" value={`${query.firstName} ${query.lastName}`} />
-        <Mini label="Ticket status" value={ticketStatus} />
-        <Mini label="eCIMS status" value={ecimsStatus} />
+        <Mini label="Ticket Status" value={ticketStatus} />
+        <Mini label="eCIMS" value={ecimsStatus} />
         <Mini label="Updated" value={`${fmtTime(activity.when)} by ${activity.who}`} />
       </div>
     </button>
@@ -122,11 +122,11 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   const changeQueryStatus = (value) => {
     if (value === ticketStatus) return;
     if (value === "Resolved" && !canResolveTicket(user)) {
-      notify("Only Coordinator/Admin can resolve QueryDesk tickets.");
+      notify("Only Coordinator/Admin can resolve tickets.");
       return;
     }
     if (!canSetTicketStatus(q, user, value, refDate)) {
-      notify("You do not have permission to set that QueryDesk ticket status.");
+      notify("You do not have permission to set that ticket status.");
       return;
     }
 
@@ -140,7 +140,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
         reopenedAt: ["Resolved", "Deactivated"].includes(currentStatus) && !["Resolved", "Deactivated"].includes(value) ? now : current.reopenedAt,
       };
       if (value !== "Resolved" && ["Resolved", "Deactivated"].includes(currentStatus)) statusUpdate.resolvedAt = null;
-      return appendAudit(statusUpdate, `QueryDesk ticket status changed from ${currentStatus} to ${value}.`);
+      return appendAudit(statusUpdate, `Ticket status changed from ${currentStatus} to ${value}.`);
     });
   };
 
@@ -186,7 +186,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
       <div className="grid gap-4 md:grid-cols-4">
         <Stat title="Urgency" value={urgencyLabel} note={days === null ? "No travel date" : `${days} days`} t={urgencyTone} />
         <Stat title="SLA" value={slaLabel} note={`${elapsed}/${target} business days`} t={slaTone} />
-        <Stat title="Ticket status" value={ticketStatus} note="QueryDesk ticket" t={statusTone(ticketStatus)} />
+        <Stat title="Ticket Status" value={ticketStatus} note="Ticket" t={statusTone(ticketStatus)} />
         <Stat title="Owner" value={q.ownerName.split(" ")[0]} note={q.ownerName} />
       </div>
 
@@ -203,14 +203,17 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
             <Mini label="Service type" value={q.serviceType} />
             <Mini label="Application type" value={q.applicationType} />
             {q.applicationType === "Group Application" && <Mini label="Group reference" value={q.groupReferenceNumber} />}
-            <Mini label="eCIMS application status" value={ecimsStatus} />
+            <Mini label="eCIMS" value={ecimsStatus} />
             <Mini label="Original support agent" value={q.originalSupportAgentName || q.ownerName} />
             <Mini label="Last commenter" value={activity.who} />
             <Mini label="Last updated" value={fmtTime(activity.when)} />
           </div>
-          <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600 ring-1 ring-slate-200">{q.queryDetails}</p>
+          <section className="mt-6 rounded-3xl border border-blue-100 bg-blue-50/50 p-5 ring-1 ring-blue-100">
+            <h2 className="text-base font-black text-slate-950">Query Details</h2>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">{q.queryDetails}</p>
+          </section>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <Sel label="QueryDesk Ticket Status" value={ticketStatus} set={changeQueryStatus} opts={statusOptions} disabled={!canEditTicketStatus} />
+            <Sel label="Ticket Status" value={ticketStatus} set={changeQueryStatus} opts={statusOptions} disabled={!canEditTicketStatus} />
             <Sel
               label="eCIMS Application Status"
               value={ecimsStatus}
@@ -221,7 +224,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
           </div>
           {lockMessage && <p className="mt-2 text-xs font-semibold text-slate-500">{lockMessage}</p>}
           {!permissions.canChangeStatus && (
-            <p className="mt-2 text-xs font-semibold text-slate-500">Only Supervisors and Coordinators can change QueryDesk ticket or eCIMS application status.</p>
+            <p className="mt-2 text-xs font-semibold text-slate-500">Only Supervisors and Coordinators can change ticket or eCIMS application status.</p>
           )}
         </Card>
 

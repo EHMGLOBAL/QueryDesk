@@ -40,7 +40,7 @@ export default function AnalyticsPage({ data, open, refDate, user }) {
       "Parent ID",
       "Query Type",
       "Owner",
-      "QueryDesk Ticket Status",
+      "Ticket Status",
       "eCIMS Application Status",
       "Query Origin",
       "Urgency",

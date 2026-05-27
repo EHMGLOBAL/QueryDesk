@@ -205,11 +205,16 @@ export default function RaisePage({ data, user, create, open, notify }) {
           )}
         </div>
 
-        <label className="mt-4 block">
-          <span className="mb-1 block text-sm font-semibold">
+        <label className="mt-5 block rounded-3xl border border-blue-100 bg-blue-50/50 p-4 ring-1 ring-blue-100">
+          <span className="mb-2 block text-sm font-bold text-slate-950">
             Query Details <span className="text-rose-600">*</span>
           </span>
-          <textarea value={form.queryDetails} onChange={(event) => set("queryDetails", event.target.value)} rows={5} className="input" />
+          <textarea
+            value={form.queryDetails}
+            onChange={(event) => set("queryDetails", event.target.value)}
+            rows={6}
+            className="w-full rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm leading-6 text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+          />
         </label>
         <div className="mt-6 flex justify-end">
           <button disabled={missing} onClick={submit} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:bg-slate-300">
