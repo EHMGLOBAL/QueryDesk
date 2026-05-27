@@ -24,7 +24,7 @@ export default function HelpCentrePage() {
               className="flex w-full items-center gap-4 rounded-[1.5rem] px-5 py-4 text-left outline-none hover:bg-slate-50 focus:ring-4 focus:ring-blue-100"
             >
               <span className="min-w-0 flex-1 text-base font-black text-slate-950">{section.title}</span>
-              <span className={cn("text-sm font-bold text-slate-400", openSections[section.title] && "rotate-180")}>v</span>
+              <span className={cn("text-lg leading-none text-slate-400 transition", openSections[section.title] ? "rotate-90" : "")}>&rsaquo;</span>
             </button>
             {openSections[section.title] && (
               <div className="space-y-2 border-t border-slate-100 px-5 pb-5 pt-4 text-sm leading-6 text-slate-600">

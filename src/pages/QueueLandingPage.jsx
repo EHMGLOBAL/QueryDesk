@@ -15,7 +15,7 @@ export default function QueueLandingPage({ type, data, open, refDate, back }) {
       },
       "queue-open": {
         title: "Open queries",
-        desc: "All active open queries. These have not been resolved, cancelled or closed.",
+        desc: "All active open queries. These have not been resolved, cancelled or deactivated.",
         rows: queues.openRows,
         tone: "blue",
         empty: "No open queries currently need review.",

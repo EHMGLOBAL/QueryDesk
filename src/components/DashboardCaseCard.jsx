@@ -71,7 +71,7 @@ export default function DashboardCaseCard({ q, open, refDate, sectionTone = "sla
         {facts.map(([label, value]) => (
           <div key={label} className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">{label}</p>
-            <p className="mt-1 truncate text-sm font-semibold text-slate-700" title={value}>
+            <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-700" title={value}>
               {value || "Not provided"}
             </p>
           </div>

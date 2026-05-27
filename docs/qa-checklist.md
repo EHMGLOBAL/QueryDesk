@@ -7,7 +7,7 @@ Use this checklist to run through the current frontend manually before sharing c
 - [ ] Log in as Support Agent using the demo PIN.
 - [ ] Confirm the Support Agent only sees their allowed navigation items.
 - [ ] Log out, then log in as Supervisor.
-- [ ] Confirm the Supervisor can access reports and rules.
+- [ ] Confirm the Supervisor can access reports but cannot access rules.
 - [ ] Log out, then log in as Coordinator.
 - [ ] Confirm the Coordinator can access reports, rules, and locked-case controls.
 
@@ -42,15 +42,16 @@ Use this checklist to run through the current frontend manually before sharing c
 ## Status Display
 
 - [ ] Open a query detail page.
-- [ ] Confirm QueryDesk ticket status is shown separately from ECIMS application status.
-- [ ] As Support Agent, confirm ticket and ECIMS status controls are disabled.
-- [ ] As Supervisor or Coordinator, change QueryDesk ticket status and confirm the audit trail records it.
-- [ ] As Supervisor or Coordinator, change ECIMS application status and confirm the audit trail records it.
+- [ ] Confirm Ticket Status is shown separately from eCIMS application status.
+- [ ] As Support Agent, confirm Ticket Status controls are disabled and eCIMS status can be updated where permitted.
+- [ ] As Supervisor, change Ticket Status with a comment and confirm the audit trail records it.
+- [ ] As Coordinator, change Ticket Status and confirm the audit trail records it.
+- [ ] As Supervisor or Coordinator, change eCIMS application status and confirm the audit trail records it.
 
 ## Resolved And Deactivated Cases
 
 - [ ] Mark a query as Resolved and confirm it stores a resolved state.
-- [ ] As Supervisor or Coordinator, add a comment to a recently resolved case and confirm it reopens.
+- [ ] As Supervisor or Coordinator, add a comment to a recently resolved case and confirm it reactivates.
 - [ ] Confirm Support Agent cannot reopen a resolved case by commenting.
 - [ ] Review a case resolved more than 3 days ago and confirm it appears as Deactivated.
 - [ ] Confirm Supervisor cannot comment on or reopen a Deactivated case.
@@ -69,6 +70,6 @@ Use this checklist to run through the current frontend manually before sharing c
 
 - [ ] Log in as Supervisor or Coordinator.
 - [ ] Open Reports.
-- [ ] Confirm the table shows ticket status and ECIMS status separately.
+- [ ] Confirm the table shows Ticket Status and eCIMS status separately.
 - [ ] Confirm query origin, urgency, SLA, last updated, and original support agent are visible.
 - [ ] Export CSV and confirm the downloaded report includes the current query data.

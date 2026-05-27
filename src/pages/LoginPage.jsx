@@ -7,6 +7,12 @@ export default function LoginPage({ onLogin }) {
   const [pin, setPin] = useState("agent123");
   const [error, setError] = useState("");
   const selected = USERS.find((user) => user.id === userId) || USERS[0];
+  const permissionStatusCopy =
+    selected.level === "supervisor"
+      ? "Can change Ticket Status with a comment."
+      : PERMISSIONS[selected.level].canChangeStatus
+        ? "Can change Ticket Status."
+        : "Cannot change Ticket Status.";
 
   const submit = (event) => {
     event.preventDefault();
@@ -80,7 +86,7 @@ export default function LoginPage({ onLogin }) {
               <p className="mt-1">
                 {PERMISSIONS[selected.level].scope === "all" ? "Can view all queries." : "Can view owned or assigned queries only."}
               </p>
-              <p>{PERMISSIONS[selected.level].canChangeStatus ? "Can change Ticket Status." : "Cannot change Ticket Status."}</p>
+              <p>{permissionStatusCopy}</p>
               <p>{PERMISSIONS[selected.level].canChangeApplicationStatus ? "Can update eCIMS application status." : "Cannot update eCIMS application status."}</p>
             </div>
           </form>

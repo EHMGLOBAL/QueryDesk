@@ -30,7 +30,10 @@ export default function RulesPage() {
             <div key={level} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
               <p className="font-bold">{permissions.label}</p>
               <p className="mt-2 text-sm text-slate-600">Scope: {permissions.scope === "all" ? "all queries" : "owned and assigned queries"}</p>
-              <p className="text-sm text-slate-600">Status changes: {permissions.canChangeStatus ? "Yes" : "No"}</p>
+              <p className="text-sm text-slate-600">
+                Ticket Status changes: {level === "supervisor" ? "Yes, with comment" : permissions.canChangeStatus ? "Yes" : "No"}
+              </p>
+              <p className="text-sm text-slate-600">Resolve tickets: {["supervisor", "coordinator", "admin"].includes(level) ? "Yes" : "No"}</p>
               <p className="text-sm text-slate-600">Deactivated reopen: {permissions.canReopenDeactivated ? "Yes" : "No"}</p>
               <p className="text-sm text-slate-600">Reports: {permissions.canViewReports ? "Yes" : "No"}</p>
             </div>

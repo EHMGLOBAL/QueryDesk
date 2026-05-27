@@ -126,13 +126,13 @@ export default function AnalyticsPage({ data, open, refDate, user }) {
                     {query.firstName} {query.lastName}
                     <div className="text-xs text-slate-500">{fmtDate(query.dateOfBirth)}</div>
                   </td>
-                  <td className="max-w-[220px] px-4 py-4 align-top leading-6">{query.queryType}</td>
-                  <td className="px-4 py-4 align-top">{query.ownerName}</td>
+                  <td className="max-w-[220px] break-words px-4 py-4 align-top leading-6">{query.queryType}</td>
+                  <td className="px-4 py-4 align-top leading-6">{query.ownerName}</td>
                   <td className="px-4 py-4 align-top">
                     <Badge t={statusTone(ticketStatus)}>{ticketStatus}</Badge>
                   </td>
-                  <td className="px-4 py-4 align-top">{ecimsStatus}</td>
-                  <td className="px-4 py-4 align-top">{query.queryOrigin}</td>
+                  <td className="px-4 py-4 align-top leading-6">{ecimsStatus}</td>
+                  <td className="px-4 py-4 align-top leading-6">{query.queryOrigin}</td>
                   <td className="px-4 py-4 align-top">
                     <Badge t={urgencyTone}>{urgencyLabel}</Badge>
                   </td>

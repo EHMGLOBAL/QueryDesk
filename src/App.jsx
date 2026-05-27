@@ -74,7 +74,7 @@ export default function App() {
   const resetDemo = () => {
     setData(normaliseQueries(seedQueries()));
     setSelected(null);
-    setNotice("Demo data reset.");
+    setNotice("Data reset.");
   };
 
   const logout = () => {

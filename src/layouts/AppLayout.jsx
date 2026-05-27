@@ -72,9 +72,9 @@ export default function AppLayout({ children, sessionUser, permissions, page, cu
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button onClick={resetDemo} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
-                  Reset demo
+                  Reset data
                 </button>
                 <button onClick={logout} className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">
                   Logout
