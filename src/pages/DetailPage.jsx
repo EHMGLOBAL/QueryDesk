@@ -24,6 +24,118 @@ import {
   urgency,
 } from "../utils/queryRules.js";
 
+function roleDisplay(role) {
+  if (role === "Supervisor") {
+    return {
+      label: "Supervisor",
+      tone: "amber",
+      className: "border-l-amber-400 bg-amber-50/60 ring-amber-100",
+    };
+  }
+  if (role === "Coordinator" || role === "Admin") {
+    return {
+      label: "Coordinator/Admin",
+      tone: "purple",
+      className: "border-l-violet-500 bg-violet-50/60 ring-violet-100",
+    };
+  }
+  if (role === "System") {
+    return {
+      label: "System",
+      tone: "slate",
+      className: "border-l-slate-300 bg-slate-50 ring-slate-200",
+    };
+  }
+  return {
+    label: "Support Agent",
+    tone: "blue",
+    className: "border-l-blue-400 bg-blue-50/50 ring-blue-100",
+  };
+}
+
+function auditDisplay(entry) {
+  const body = entry.body || "";
+  const statusChange = body.match(/Ticket Status changed from (.*?) to (.*?)(?:\.|$)/);
+  const commentMatch = body.match(/Comment:\s*(.*)$/);
+  const reasonMatch = body.match(/Reason:\s*(.*)$/);
+
+  if (body.startsWith("Attachment added:")) {
+    return { action: "Attachment uploaded", detail: body.replace("Attachment added:", "").trim(), comment: "" };
+  }
+  if (body.startsWith("eCIMS application status changed")) {
+    return { action: "eCIMS status updated", detail: body, comment: "" };
+  }
+  if (body.startsWith("Ticket resolved:") || (statusChange && statusChange[2] === "Resolved")) {
+    return {
+      action: "Ticket resolved",
+      detail: statusChange ? `Previous: ${statusChange[1]}. New: ${statusChange[2]}.` : body.replace("Ticket resolved:", "").trim(),
+      comment: commentMatch?.[1] || "",
+    };
+  }
+  if (body.startsWith("Ticket Status changed") && statusChange) {
+    return {
+      action: "Ticket Status changed",
+      detail: `Previous: ${statusChange[1]}. New: ${statusChange[2]}.`,
+      comment: commentMatch?.[1] || "",
+    };
+  }
+  if (body.startsWith("Reactivated:") || body.startsWith("Ticket reactivated:") || body.startsWith("Reactivation request approved")) {
+    return {
+      action: "Ticket reactivated",
+      detail: body.replace("Reactivated:", "").replace("Ticket reactivated:", "").trim(),
+      comment: reasonMatch?.[1] || commentMatch?.[1] || "",
+    };
+  }
+  if (body.startsWith("Reactivation requested:")) {
+    return { action: "Reactivation request submitted", detail: "", comment: body.replace("Reactivation requested:", "").trim() };
+  }
+  if (body.startsWith("Reactivation request declined")) {
+    return { action: "Reactivation request declined", detail: body, comment: reasonMatch?.[1] || "" };
+  }
+  if (body.startsWith("Ticket became Deactivated")) {
+    return { action: "Ticket Deactivated", detail: body, comment: "" };
+  }
+  if (body.startsWith("Child query raised:")) {
+    return { action: "Child query raised", detail: "", comment: body.replace("Child query raised:", "").trim() };
+  }
+  if (body.startsWith("Initial query raised:")) {
+    return { action: "Query raised", detail: "", comment: body.replace("Initial query raised:", "").trim() };
+  }
+  return { action: "Comment added", detail: "", comment: body };
+}
+
+function AuditEntry({ entry }) {
+  const role = roleDisplay(entry.role);
+  const display = auditDisplay(entry);
+
+  return (
+    <div className={cn("rounded-2xl border-l-4 p-4 ring-1", role.className)}>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-bold text-slate-950">{entry.author}</p>
+        <Badge t={role.tone}>{role.label}</Badge>
+        <span className="text-xs font-semibold text-slate-500">{fmtTime(entry.timestamp)}</span>
+        <span className="text-xs font-black text-slate-700">- {display.action}</span>
+      </div>
+      {display.detail && <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">{display.detail}</p>}
+      {display.comment && <p className="mt-3 rounded-xl bg-white/75 p-3 text-sm leading-6 text-slate-700">{display.comment}</p>}
+    </div>
+  );
+}
+
+function statusBannerStyle(status) {
+  return (
+    {
+      Open: "border-blue-100 bg-blue-50/60 ring-blue-100",
+      "In Progress": "border-amber-100 bg-amber-50/60 ring-amber-100",
+      Resolved: "border-emerald-100 bg-emerald-50/60 ring-emerald-100",
+      Reactivated: "border-violet-100 bg-violet-50/60 ring-violet-100",
+      Unresolved: "border-rose-100 bg-rose-50/60 ring-rose-100",
+      Deactivated: "border-slate-200 bg-slate-50 ring-slate-200",
+      Cancelled: "border-slate-200 bg-slate-50 ring-slate-200",
+    }[status] || "border-slate-200 bg-slate-50 ring-slate-200"
+  );
+}
+
 function LinkedQuerySummaryCard({ query, label, tone, current, open, refDate, linkedToParent = false }) {
   const ticketStatus = getTicketStatus(query, refDate);
   const ecimsStatus = getEcimsStatus(query);
@@ -66,8 +178,16 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   const ecimsStatus = getEcimsStatus(q);
   const activity = lastActivity(q);
   const attachments = q.attachments || [];
+  const isSupervisor = user.level === "supervisor";
+  const isCoordinatorOrAdmin = user.level === "coordinator" || user.level === "admin";
+  const isSupportAgent = user.level === "agent";
+  const isResolvedTicket = ticketStatus === "Resolved";
+  const isDeactivatedTicket = ticketStatus === "Deactivated";
+  const isLockedTicket = isResolvedTicket || isDeactivatedTicket;
   const canComment = canCommentOnQuery(q, user, refDate);
   const canEditTicketStatus = canChangeTicketStatus(q, user, refDate);
+  const canUseTicketStatusControl = canEditTicketStatus && (!isResolvedTicket || isCoordinatorOrAdmin);
+  const canEditEcimsStatus = permissions.canChangeApplicationStatus && !isLockedTicket;
   const canCreateChild = permissions.canCreateChild && !["Resolved", "Deactivated"].includes(ticketStatus);
   const [urgencyLabel, urgencyTone, days] = urgency(q, refDate);
   const [slaLabel, slaTone, elapsed, target] = sla(q, refDate);
@@ -81,8 +201,12 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
   const groupChildren = childrenQueries || [];
   const hasLinkedQueries = Boolean(parentQuery || groupChildren.length);
   const statusOptions = getAllowedTicketStatuses(q, user, refDate);
-  const isSupervisor = user.level === "supervisor";
-  const isSupportAgent = user.level === "agent";
+  const statusDisplay = q.reactivationLabel && !isLockedTicket && ticketStatus !== "Cancelled" ? "Reactivated" : ticketStatus;
+  const lockedStateMessage = isDeactivatedTicket
+    ? "Deactivated ticket - only Coordinator/Admin can reopen this ticket."
+    : isResolvedTicket
+      ? "Resolved ticket - editing locked"
+      : "";
   const pendingUserReactivationRequest = (q.reactivationRequests || []).find(
     (request) => request.status === "pending" && request.requesterId === user.id
   );
@@ -109,10 +233,10 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
     const currentStatus = getTicketStatus(current, refDate);
     const now = new Date().toISOString();
     const reactivated = ["Resolved", "Deactivated"].includes(currentStatus) && !["Resolved", "Deactivated"].includes(value);
-    const commentEntry = commentBody ? [audit(user, commentBody)] : [];
+    const statusAction = value === "Resolved" ? "Ticket resolved" : reactivated ? "Ticket reactivated" : "Ticket Status changed";
     const auditText = commentBody
-      ? `Ticket Status changed from ${currentStatus} to ${value}. Comment: ${commentBody}`
-      : `Ticket Status changed from ${currentStatus} to ${value}.`;
+      ? `${statusAction}: Ticket Status changed from ${currentStatus} to ${value}. Comment: ${commentBody}`
+      : `${statusAction}: Ticket Status changed from ${currentStatus} to ${value}.`;
 
     return {
       ...current,
@@ -123,7 +247,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
       reactivatedAt: reactivated ? now : value === "Resolved" ? null : current.reactivatedAt,
       reactivatedBy: reactivated ? user.name : value === "Resolved" ? null : current.reactivatedBy,
       reactivationLabel: reactivated ? true : value === "Resolved" ? false : current.reactivationLabel,
-      comments: [...(current.comments || []), ...commentEntry, audit(user, auditText)],
+      comments: [...(current.comments || []), audit(user, auditText)],
     };
   };
 
@@ -203,7 +327,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
     }
     if (value === ticketStatus) return;
     if (value === "Resolved" && !canResolveTicket(user)) {
-      notify("Only Coordinator/Admin can resolve tickets.");
+      notify("Only Supervisors and Coordinators can resolve tickets.");
       return;
     }
     if (!canSetTicketStatus(q, user, value, refDate)) {
@@ -280,7 +404,17 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
         &larr; Back
       </button>
       <Header title={q.applicationNumber || "Query detail"} desc={`${q.firstName} ${q.lastName} - ${q.queryType}`} />
-      {q.reactivationLabel && <Badge t="purple">Reactivated</Badge>}
+
+      <section className={cn("rounded-[1.35rem] border p-5 ring-1", statusBannerStyle(statusDisplay))}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-slate-500">Ticket Status</p>
+            <p className="mt-1 text-2xl font-black text-slate-950">{statusDisplay}</p>
+          </div>
+          <Badge t={statusTone(statusDisplay)}>{statusDisplay}</Badge>
+        </div>
+        {lockedStateMessage && <p className="mt-3 text-sm font-semibold text-slate-600">{lockedStateMessage}</p>}
+      </section>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Stat title="Urgency" value={urgencyLabel} note={days === null ? "No travel date" : `${days} days`} t={urgencyTone} />
@@ -317,19 +451,19 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
               value={isSupervisor ? ticketStatusDraft : ticketStatus}
               set={changeQueryStatus}
               opts={statusOptions}
-              disabled={!canEditTicketStatus}
+              disabled={!canUseTicketStatusControl}
             />
             <Sel
               label="eCIMS application status"
               value={ecimsStatus}
               set={changeApplicationStatus}
               opts={ECIMS_APPLICATION_STATUSES}
-              disabled={!permissions.canChangeApplicationStatus}
+              disabled={!canEditEcimsStatus}
             />
           </div>
           {lockMessage && <p className="mt-2 text-xs font-semibold text-slate-500">{lockMessage}</p>}
           {isSupportAgent && <p className="mt-2 text-xs font-semibold text-slate-500">Only Supervisors and Coordinators can change Ticket Status.</p>}
-          {isSupervisor && canEditTicketStatus && (
+          {isSupervisor && canUseTicketStatusControl && (
             <p className="mt-2 text-xs font-semibold text-slate-500">Supervisors must add a comment before changing Ticket Status.</p>
           )}
           {statusValidation && <p className="mt-2 text-xs font-bold text-rose-700">{statusValidation}</p>}
@@ -438,20 +572,7 @@ export default function DetailPage({ q, user, back, update, refDate, create, ope
           <h2 className="text-xl font-bold">Comments and audit trail</h2>
           <div className="mt-4 space-y-3">
             {(q.comments || []).map((entry) => (
-              <div
-                key={entry.id}
-                className={cn(
-                  "rounded-2xl p-4 ring-1",
-                  entry.role === "Coordinator" ? "bg-blue-50 ring-blue-200" : entry.role === "Supervisor" ? "bg-violet-50 ring-violet-200" : "bg-slate-50 ring-slate-200"
-                )}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-bold">{entry.author}</p>
-                  <Badge t={entry.role === "Coordinator" ? "blue" : entry.role === "Supervisor" ? "purple" : "slate"}>{entry.role}</Badge>
-                  <span className="text-xs text-slate-500">{fmtTime(entry.timestamp)}</span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{entry.body}</p>
-              </div>
+              <AuditEntry key={entry.id} entry={entry} />
             ))}
           </div>
         </Card>

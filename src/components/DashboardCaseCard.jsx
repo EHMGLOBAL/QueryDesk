@@ -7,6 +7,7 @@ export default function DashboardCaseCard({ q, open, refDate, sectionTone = "sla
   const [urgencyLabel, urgencyTone, days] = urgency(q, refDate);
   const [slaLabel, slaTone, elapsed, target] = sla(q, refDate);
   const ticketStatus = getTicketStatus(q, refDate);
+  const displayStatus = q.reactivationLabel && !["Resolved", "Deactivated", "Cancelled"].includes(ticketStatus) ? "Reactivated" : ticketStatus;
   const ecimsStatus = getEcimsStatus(q);
   const activity = lastActivity(q);
   const isChild = Boolean(q.parentId);
@@ -52,10 +53,9 @@ export default function DashboardCaseCard({ q, open, refDate, sectionTone = "sla
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="break-all text-base font-black text-slate-950">{q.applicationNumber || "No reference"}</h3>
+            <Badge t={statusTone(displayStatus)}>Ticket Status: {displayStatus}</Badge>
             <Badge t={urgencyTone}>{urgencyLabel}</Badge>
             <Badge t={slaTone}>{slaLabel}</Badge>
-            <Badge t={statusTone(ticketStatus)}>{ticketStatus}</Badge>
-            {q.reactivationLabel && <Badge t="purple">Reactivated</Badge>}
             <Badge t={relationshipTone}>{relationshipLabel}</Badge>
             {!isChild && linkedCount > 0 && <Badge>{linkedCount + 1} linked</Badge>}
           </div>

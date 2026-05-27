@@ -207,7 +207,7 @@ export function canChangeTicketStatus(query, user, ref = new Date()) {
 }
 
 export function canResolveTicket(user) {
-  return user.level === "coordinator" || user.level === "admin";
+  return user.level === "supervisor" || user.level === "coordinator" || user.level === "admin";
 }
 
 export function canSetTicketStatus(query, user, nextStatus, ref = new Date()) {

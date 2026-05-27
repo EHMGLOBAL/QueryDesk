@@ -24,7 +24,7 @@ export const HELP_CENTRE_SECTIONS = [
   {
     title: "Resolved and deactivated tickets",
     content:
-      "Only Coordinators/Admins can resolve tickets. Supervisors can reopen resolved tickets within 3 days by adding a comment. After 3 days, the ticket becomes deactivated and only a Coordinator/Admin can reopen or comment.",
+      "Supervisors and Coordinators/Admins can resolve tickets. Supervisors must add a comment when resolving or changing Ticket Status. Supervisors can reopen resolved tickets within 3 days by adding a comment. After 3 days, the ticket becomes deactivated and only a Coordinator/Admin can reopen or comment.",
   },
   {
     title: "Need more help?",

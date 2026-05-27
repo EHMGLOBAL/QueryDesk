@@ -8,6 +8,7 @@ export default function QueryCard({ q, open, refDate, compact = false, linkedCou
   const [urgencyLabel, urgencyTone] = urgency(q, refDate);
   const [slaLabel, slaTone] = sla(q, refDate);
   const ticketStatus = getTicketStatus(q, refDate);
+  const displayStatus = q.reactivationLabel && !["Resolved", "Deactivated", "Cancelled"].includes(ticketStatus) ? "Reactivated" : ticketStatus;
   const activity = groupActivity || lastActivity(q);
   const hasLinkedQueries = linkedCount > 0;
 
@@ -24,10 +25,9 @@ export default function QueryCard({ q, open, refDate, compact = false, linkedCou
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="break-all font-bold text-slate-950">{q.applicationNumber || "No reference"}</h3>
+            <Badge t={statusTone(displayStatus)}>Ticket Status: {displayStatus}</Badge>
             <Badge t={urgencyTone}>{urgencyLabel}</Badge>
             <Badge t={slaTone}>{slaLabel}</Badge>
-            <Badge t={statusTone(ticketStatus)}>{ticketStatus}</Badge>
-            {q.reactivationLabel && <Badge t="purple">Reactivated</Badge>}
             {hasLinkedQueries ? (
               <>
                 <Badge t="blue">Linked queries</Badge>
